@@ -52,6 +52,20 @@ AI围绕课程引入、运行结果、修改和理解检查主动提供教学引
 
 开发模式使用 `npm run dev`。当前启动脚本使用`tsx`，安装依赖时不要省略开发依赖。
 
+## Ubuntu服务器首次后台安装
+
+在Node.js和Docker已安装、源码及镜像已构建的前提下，可使用`deploy/setup-service.sh`完成首次后台配置。脚本针对以下独立布局：
+
+- 源码：`/opt/codeclario/app`
+- Node.js：`/opt/codeclario/runtime/node`
+- 新数据库：`/var/lib/codeclario/learning.sqlite`
+- 服务器密钥文件：`/etc/codeclario.env`，root权限600，不进入源码仓库
+- 后台服务：`codeclario.service`，使用专用账户和Docker附加组
+
+使用root在源码目录执行`bash deploy/setup-service.sh`。密钥从服务器终端隐藏读取，不通过命令行参数输入；验证连接后再保存。已有账户、数据目录或配置时脚本会停止，不覆盖原内容。
+
+应用监听本机`127.0.0.1:3000`，执行并发为1。需要另行配置现有Nginx反向代理和HTTPS后再注册登录；服务使用Secure Cookie。首次安装脚本不用于日常更新。日常更新保留外部密钥和数据，拉取源码、构建后重启应用；执行器变化时另行重建镜像。
+
 ## 配置与数据
 
 配置项见 `.env.example`。默认数据库为项目目录外的 `../Data/learning.sqlite`，首次启动自动创建。可用 `DATABASE_PATH` 指定其他位置。部署时应单独保存并备份数据库，重启服务不会重置已有账户。
