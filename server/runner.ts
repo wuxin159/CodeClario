@@ -3,6 +3,10 @@ import { randomUUID } from "node:crypto";
 import { AccountError } from "./database.ts";
 export const runnerImage =
   process.env.RUNNER_IMAGE || "codewise-runner:teaching-v2";
+const configuredConcurrency = process.env.RUNNER_MAX_CONCURRENT ?? "3";
+if (!/^[1-3]$/.test(configuredConcurrency))
+  throw new Error("RUNNER_MAX_CONCURRENT必须为1、2或3。");
+export const runnerMaxConcurrent = Number(configuredConcurrency);
 let activeRuns = 0;
 export async function runSandbox(request: {
   language: string;
@@ -11,7 +15,7 @@ export async function runSandbox(request: {
   tests: { input: string; expected: string }[];
   functionCheck?: boolean;
 }): Promise<Record<string, any>> {
-  if (activeRuns >= 3)
+  if (activeRuns >= runnerMaxConcurrent)
     throw new AccountError(429, "运行队列繁忙，请稍后再试。");
   activeRuns++;
   const container = "codewise-" + randomUUID();
