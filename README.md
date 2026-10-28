@@ -63,4 +63,5 @@ AI围绕课程引入、运行结果、修改和理解检查主动提供教学引
 
 ## 开发者
 
-WuXin。项目为原创编程学习应用，使用React、Express、CodeMirror等开源依赖；依赖版本以`package-lock.json`为准。
+WuXin
+项目为原创编程学习应用，使用React、Express、CodeMirror等开源依赖；依赖版本以`package-lock.json`为准。
