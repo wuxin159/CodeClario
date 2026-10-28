@@ -1,0 +1,93 @@
+/* Approved gradient V2 artwork. Strong gradients belong to actions; reading
+   surfaces stay light. Button stops are darker than the bitmap for white text. */
+:root {
+  --accent: #275dee;
+  --primary: #275dee;
+  --accent-dark: #204dcc;
+  --brand-action: linear-gradient(110deg, #275dee 0%, #2465dc 52%, #167bb8 100%);
+  --brand-action-hover: linear-gradient(110deg, #204dcc 0%, #215ac4 52%, #116caa 100%);
+  --brand-tint: linear-gradient(110deg, #eaf0ff 0%, #edf5ff 55%, #e7f6fb 100%);
+  --brand-tint-hover: linear-gradient(110deg, #e2eaff 0%, #e5f0ff 55%, #ddf1f9 100%);
+}
+.landing-page {
+  --home-blue: #275dee;
+  --home-blue-dark: #204dcc;
+}
+.app-shell .brand-lockup,
+.account-dialog .brand-lockup,
+.home-wordmark {
+  background: url('/brand/lockup-gradient.png') center / contain no-repeat;
+  mask: none;
+}
+.app-shell .brand-mark,
+.app-shell.is-workspace .brand > .brand-mark,
+.app-shell .task-kicker > .brand-mark,
+.home-small-mark {
+  background: url('/brand/mark-gradient.png') center / 100% auto no-repeat;
+  mask: none;
+}
+.app-shell .task-kicker > .brand-mark,
+.home-small-mark {
+  width: 26px;
+  height: 18px;
+}
+.app-shell .button.primary:not(:disabled),
+.app-shell .question-submit:not(:disabled),
+.app-shell .study-run-bar > button:not(:disabled),
+.app-shell .visual-controls .play-scene:not(:disabled),
+.app-shell .replay-controls button[aria-label='播放真实回放']:not(:disabled),
+.app-shell .replay-controls button[aria-label='暂停真实回放']:not(:disabled),
+.home-button:not(:disabled),
+.home-signin:not(:disabled) {
+  background: var(--brand-action);
+  border-color: transparent;
+  color: #fff;
+}
+.app-shell .button.primary:not(:disabled):hover,
+.app-shell .question-submit:not(:disabled):hover,
+.app-shell .study-run-bar > button:not(:disabled):hover,
+.app-shell .visual-controls .play-scene:not(:disabled):hover,
+.home-button:not(:disabled):hover,
+.home-signin:not(:disabled):hover {
+  background: var(--brand-action-hover);
+}
+.account-dialog form > button:not(:disabled),
+.account-dialog .account-submit:not(:disabled) {
+  background: var(--brand-action) !important;
+  color: #fff;
+}
+.account-dialog form > button:not(:disabled):hover,
+.account-dialog .account-submit:not(:disabled):hover {
+  background: var(--brand-action-hover) !important;
+}
+.app-shell .nav-item.active,
+.app-shell .growth-card,
+.app-shell .task-reason,
+.app-shell .goal-languages > .selected,
+.app-shell .entry-diagnostic label:has(input:checked),
+.product-tabs button[aria-selected='true'] {
+  background: var(--brand-tint) !important;
+}
+.app-shell .nav-item.active:hover {
+  background: var(--brand-tint-hover) !important;
+}
+.home-hero-copy h1 span:last-child {
+  color: #2465dc;
+  background: linear-gradient(110deg, #275dee 0%, #2475ed 52%, #1681b7 100%);
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.home-demo,
+.product-frame-bar,
+.home-language-list article {
+  background: linear-gradient(120deg, #f2f6ff, #eff8fc);
+}
+.home-closing {
+  background: var(--brand-tint);
+}
+@media (forced-colors: active) {
+  .home-hero-copy h1 span:last-child {
+    background: none;
+    -webkit-text-fill-color: CanvasText;
+  }
+}
