@@ -107,6 +107,7 @@ export function useTeachingFlow({
     const c = new AbortController();
     controller.current = c;
     const snapshot = version.current;
+    // 请求使用不可变的课程/代码/输入快照，响应回来后只更新仍匹配这份快照的页面。
     pendingRequest.current = { trigger, extra, snapshot };
     setBusy(true);
     setError("");
@@ -138,7 +139,7 @@ export function useTeachingFlow({
     }
     return false;
   }
-  // Compare source contents, not the enclosing object, across asynchronous React renders.
+  // React 每次渲染会创建新对象，因此比较字段内容，不能仅比较对象引用。
   const stillCurrent = (snapshot: typeof version.current) =>
     mounted.current &&
     snapshot.userId === version.current.userId &&

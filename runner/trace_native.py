@@ -30,6 +30,7 @@ def text(value):
     except Exception: return str(value)[:160]
 
 def describe(name, value, depth=0):
+    # 只读取调试器已有值，限制展开深度和元素数，不调用学生对象的方法来“计算”显示内容。
     t = value.type.strip_typedefs()
     node = {'name':name, 'type':str(value.type), 'value':text(value), 'kind':'scalar'}
     try:
@@ -98,12 +99,14 @@ def capture(event='line', returned=None):
                             try:
                                 if not symbol.is_argument and symbol.line > current.find_sal().line: continue
                                 value=current.read_var(symbol)
-                                # A declaration's before-state is not an initialized value.
+                                # 行断点发生在执行前，声明所在行的局部值不能冒充已初始化结果。
                                 key=identity+(symbol.name,symbol.line)
                                 if symbol.line<current.find_sal().line: initialized_loops.add(key)
                                 header=source_lines[current.find_sal().line-1] if 0<current.find_sal().line<=len(source_lines) else ''
                                 loop_value=bool(re.match(r'\s*for\s*\(',header)) and key in initialized_loops
-                                if not symbol.is_argument and symbol.line >= current.find_sal().line and not loop_value:
+                                returning_here = event == 'return' and current == frame
+                                # 仅当前返回帧已执行完整个函数；更老的调用者帧仍按自身停靠阶段处理。
+                                if not symbol.is_argument and symbol.line >= current.find_sal().line and not loop_value and not returning_here:
                                     node={'name':symbol.name,'type':str(value.type),'kind':'scalar','value':'尚未完成声明','unavailable':True}
                                 else:
                                     node=describe(symbol.name,value)
@@ -129,7 +132,7 @@ def capture(event='line', returned=None):
 class Line(gdb.Breakpoint):
     def stop(self):
         capture()
-        # Returning False observes source lines without executing debugger commands.
+        # 返回 False 让被调试程序继续运行；断点只负责采集，不执行额外的学生函数。
         return False
 
 class Return(gdb.Breakpoint):
@@ -183,6 +186,7 @@ try:
     gdb.execute('run < /work/trace-input > '+os.ttyname(slave)+' 2> /work/trace-error',to_string=True)
     final_output=drain()
     if steps and len(steps)<80:
+        # 程序级结束帧与某一条源码行的执行前状态不同，前端必须结合 event 解释。
         steps.append({'line':steps[-1]['line'],'event':'return','scope':'<program>','values':{},'data':[],
                       'frames':[],'stack':[],'output':final_output})
     payload={'status':'available' if steps else 'unavailable','steps':steps,'truncated':truncated,'finalOutput':final_output,

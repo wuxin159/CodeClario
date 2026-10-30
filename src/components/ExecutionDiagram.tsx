@@ -29,6 +29,7 @@ export default function ExecutionDiagram({
     all = flattenedValues(roots),
     op = observedOperation(code, step, after);
   const nextPoint = steps[position + 1],
+    // 输出只取相邻已采集状态的实际差异，不根据源码语句自行推测会打印什么。
     outputChanges = !!nextPoint && nextPoint.output !== step.output;
   const addedOutput = outputChanges
     ? nextPoint.output.startsWith(step.output)
@@ -178,7 +179,7 @@ export default function ExecutionDiagram({
               {svgClip("当前观察 · " + step.scope, 12)}
             </text>
             <text x="395" y="44" className="execution-svg-label">
-              {after ? "下次回到本作用域" : "后续状态"}
+              {after?.event === "return" ? "作用域结束时" : after?.event === "exception" ? "异常发生时" : after ? "下次回到本作用域" : "后续状态"}
             </text>
             <text x="30" y="80" className="execution-svg-value">
               {op.kind === "assignment"
@@ -197,6 +198,10 @@ export default function ExecutionDiagram({
             <text x="395" y="80" className="execution-svg-value">
               {op.kind === "assignment" && op.result !== undefined
                 ? svgClip(op.target + " = " + op.result)
+                : after?.event === "return"
+                  ? after.scope === "<module>" || after.scope === "<program>" ? "程序已结束" : "即将返回调用处"
+                  : after?.event === "exception"
+                    ? "第" + after.line + "行异常"
                 : after
                   ? "第" + after.line + "行之前"
                   : "后续未采集"}

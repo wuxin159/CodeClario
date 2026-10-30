@@ -33,6 +33,7 @@ app.disable("x-powered-by");
 if (process.env.TRUST_PROXY === "loopback") app.set("trust proxy", "loopback");
 app.use(express.json({ limit: "640kb" }));
 app.use("/api", (req, res, next) => {
+  // 反向代理应透传原 Host；浏览器来源不匹配时拒绝请求，不能为部署方便关闭此检查。
   const origin = req.headers.origin;
   const host = req.headers.host;
   if (origin && new URL(origin).host !== host) {
@@ -121,6 +122,7 @@ app.post("/api/run", requireMatchingAccount, async (req, res) => {
     const passed =
       result.status === "success" && checkedTests.every((test) => test.passed);
     const output: RunResult = {
+      // 源码与输入共同组成版本标识，后续 AI 分析和回放必须引用这次实际运行。
       id: randomUUID(),
       revision: createHash("sha256")
         .update(code + "\0" + stdin)
@@ -133,6 +135,8 @@ app.post("/api/run", requireMatchingAccount, async (req, res) => {
       compileOutput: String(result.compileOutput || ""),
       exitCode: Number(result.exitCode ?? -1),
       durationMs: Number(result.durationMs || 0),
+      timedOut: result.timedOut === true,
+      ...(result.failure ? { failure: result.failure } : {}),
       passed,
       tests: checkedTests,
       trace:

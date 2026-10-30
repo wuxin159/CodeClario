@@ -10,12 +10,14 @@ import { lessonIntroduction } from "../shared/lessonIntroduction.ts";
 import { MissionStore } from "./missions.ts";
 import type { Mission } from "../shared/mission.ts";
 import type { DailyPlan, DailySnapshot, DailyStep } from "../shared/daily.ts";
+import { statedDailyMinutes } from "../shared/dailyBudget.ts";
 const internalText = (text: string) =>
   /\b(history|candidates|schema|courseReview|phase|budget|evidence)\b|(?:c|cpp|python)-\d+|候选|新手规则|校验规则|不评价能力/i.test(
     text,
   );
 
 export function localDay(timeZone: string, now = new Date()) {
+  // 按学习者时区决定“今天”，避免服务器的 UTC 日期导致午夜前后重复创建计划。
   if (typeof timeZone !== "string" || timeZone.length > 80)
     throw new AccountError(400, "时区无效。");
   try {
@@ -45,6 +47,7 @@ export function dailyRoutes(store: LearningDatabase) {
     return r ? JSON.parse(r.plan_json) : null;
   };
   const snapshot = (uid: string, day: string): DailySnapshot => {
+    // 计划文字可缓存，但完成状态需重新读取真实任务、运行和检查，不能由模型文字宣告通过。
     const plan = read(uid, day);
     return {
       userId: uid,
@@ -149,7 +152,11 @@ export function dailyRoutes(store: LearningDatabase) {
           res.json({ ...snapshot(uid, day), cached: true });
           return;
         }
-        const budget = req.body.minutes ?? old?.budget ?? 20;
+        const message = req.body.message === undefined ? "" : req.body.message;
+        if (typeof message !== "string" || message.length > 500)
+          throw new AccountError(400, "请用500字以内说明今天的想法。");
+        // 控件选择优先，其次采用可明确识别的单一时长，最后才沿用已保存预算。
+        const budget = req.body.minutes ?? statedDailyMinutes(message) ?? old?.budget ?? 20;
         if (![10, 20, 35].includes(budget))
           throw new AccountError(400, "请选择10、20或35分钟。");
         const active = missions.active(uid),
@@ -157,9 +164,6 @@ export function dailyRoutes(store: LearningDatabase) {
             req.body.language ?? old?.language ?? active?.goal.language ?? "c";
         if (!["c", "cpp", "python"].includes(language))
           throw new AccountError(400, "请选择已有课程语言。");
-        const message = req.body.message === undefined ? "" : req.body.message;
-        if (typeof message !== "string" || message.length > 500)
-          throw new AccountError(400, "请用500字以内说明今天的想法。");
         if (old?.revision && old.revision >= 12 && explicit)
           throw new AccountError(429, "今天已多次调整，现有计划仍可继续。");
         const config = aiConfig(uid);
@@ -176,6 +180,7 @@ export function dailyRoutes(store: LearningDatabase) {
           }),
           key = uid + ":" + day;
         const running = pending.get(key);
+        // 同账户同一天相同请求合并等待；不同调整不能并发覆盖同一份计划。
         if (running) {
           if (running.signature !== signature)
             throw new AccountError(

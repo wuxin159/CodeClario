@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -48,11 +48,14 @@ import ErrorLab from "./ErrorLab";
 import type { TeachingViewContext } from "../../shared/flow";
 import { lessonIntroduction } from "../../shared/lessonIntroduction";
 import type { Missions } from "../hooks/useMissions";
+import { executionInterruption } from "../../shared/executionFailure";
 
-const CodeEditor = lazy(() => import("./CodeEditor"));
+import CodeEditor from "./RecoverableEditor";
 const runStatusLabel: Record<string, string> = {
   success: "执行结束",
   compile_error: "编译错误",
+  compile_timeout: "编译超时",
+  compile_terminated: "编译被终止",
   runtime_error: "运行错误",
   timeout: "运行超时",
   error: "执行失败",
@@ -106,6 +109,12 @@ export default function LearningWorkspace(p: Props) {
     "code",
   );
   const [experimentView, setExperimentView] = useState<TeachingViewContext>();
+  const experimentRun = useRef<{ run: () => void }>(null);
+  const [experimentOpened, setExperimentOpened] = useState(false);
+  // 实验首次打开后只隐藏而不卸载，保证同课程页签来回切换时未运行的改稿仍在。
+  useEffect(() => {
+    if (mode === "experiment") setExperimentOpened(true);
+  }, [mode]);
   const [coachTab, setCoachTab] = useState<"flow" | "chat">("flow");
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
@@ -433,16 +442,6 @@ export default function LearningWorkspace(p: Props) {
       if (live.current) setRunning(false);
     }
   }
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
-        event.preventDefault();
-        void run();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [draft, savedInput, running, userId]);
   async function ask(text: string, skill = "hint") {
     if (thinking || !historyReady || !text.trim()) return;
     if (!userId) {
@@ -497,7 +496,15 @@ export default function LearningWorkspace(p: Props) {
     }
   }
   return (
-    <main className="learning-workspace" data-mode={mode}>
+    <main className="learning-workspace" data-mode={mode} onKeyDownCapture={(event) => {
+      // 在编辑器默认键位之前消费快捷键，并按当前模式分派，防止插空行或运行错代码。
+      if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+        event.preventDefault();
+        event.stopPropagation();
+        if (mode === "experiment") experimentRun.current?.run();
+        else void run();
+      }
+    }}>
       <div className="learning-toolbar">
         <button
           className="workspace-back"
@@ -559,7 +566,7 @@ export default function LearningWorkspace(p: Props) {
             </button>
           ) : (
             <span className="study-save" role="status">
-              {p.saveStatus === "saved" ? "已保存" : "保存中…"}
+              {mode === "experiment" ? "主代码" : ""}{p.saveStatus === "saved" ? "已保存" : "保存中…"}
             </span>
           )}
           <select
@@ -879,8 +886,11 @@ export default function LearningWorkspace(p: Props) {
               onViewedStep={setReplayIndex}
             />
           )}
-          {mode === "experiment" && (
+          {(mode === "experiment" || experimentOpened) && (
+            <div hidden={mode !== "experiment"}>
             <ErrorLab
+              active={mode === "experiment"}
+              runRef={experimentRun}
               lesson={lesson}
               userId={userId}
               context={`${mode}:${visualFocus}`}
@@ -889,6 +899,7 @@ export default function LearningWorkspace(p: Props) {
                 void flow.observeExperiment(v);
               }}
             />
+            </div>
           )}
           <div className="study-code-body" hidden={mode !== "code"}>
             <div className="study-editor-caption">
@@ -906,11 +917,6 @@ export default function LearningWorkspace(p: Props) {
             </div>
             <div className="task-code-observe">
               <div className="study-code-editor">
-                <Suspense
-                  fallback={
-                    <div className="editor-loading">正在加载编辑器…</div>
-                  }
-                >
                   <CodeEditor
                     value={draft}
                     onChange={p.onDraft}
@@ -919,7 +925,6 @@ export default function LearningWorkspace(p: Props) {
                       activeAIFocus?.line ?? (!stale ? observedLine : undefined)
                     }
                   />
-                </Suspense>
               </div>
               <LiveEvidence
                 result={result}
@@ -1092,6 +1097,7 @@ export default function LearningWorkspace(p: Props) {
                     {result.durationMs} ms · 退出码 {result.exitCode}
                   </span>
                   <pre>{result.stdout || "（无标准输出）"}</pre>
+                  {executionInterruption(result) && <p role="status">{executionInterruption(result)}</p>}
                   {(result.compileOutput || result.stderr) && (
                     <pre className="study-error">
                       {result.compileOutput || result.stderr}

@@ -18,6 +18,13 @@ export default function DailyWelcome({
 }) {
   const [message, setMessage] = useState(""),
     [starting, setStarting] = useState(false);
+  const reply = async () => {
+    // 失败保留原意愿；请求成功时也不能清掉学生等待期间继续输入的新内容。
+    const submitted = message.trim();
+    if (!submitted || d.busy) return;
+    if (await d.prepare({ message: submitted }))
+      setMessage((current) => current.trim() === submitted ? "" : current);
+  };
   const start = async (index: number) => {
     setStarting(true);
     try {
@@ -179,10 +186,7 @@ export default function DailyWelcome({
               className="daily-reply"
               onSubmit={(e) => {
                 e.preventDefault();
-                if (message.trim() && !d.busy) {
-                  void d.prepare({ message: message.trim() });
-                  setMessage("");
-                }
+                void reply();
               }}
             >
               <input
@@ -204,8 +208,8 @@ export default function DailyWelcome({
         {(d.error || m.error) && (
           <p className="daily-error" role="alert">
             {d.error || m.error}
-            <button disabled={d.busy} onClick={() => void d.prepare()}>
-              重新读取安排
+            <button disabled={d.busy} onClick={() => message.trim() ? void reply() : void d.prepare()}>
+              {message.trim() ? "重试这次调整" : "重新读取安排"}
             </button>
           </p>
         )}

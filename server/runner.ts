@@ -15,6 +15,7 @@ export async function runSandbox(request: {
   tests: { input: string; expected: string }[];
   functionCheck?: boolean;
 }): Promise<Record<string, any>> {
+  // 宿主层先限并发，容器内再限资源；两者共同控制小内存服务器的运行开销。
   if (activeRuns >= runnerMaxConcurrent)
     throw new AccountError(429, "运行队列繁忙，请稍后再试。");
   activeRuns++;
@@ -22,6 +23,7 @@ export async function runSandbox(request: {
   try {
     return await new Promise((resolve, reject) => {
       const child = spawn(
+        // 每次运行独立容器且不挂载宿主源码，只有临时 /work 可写，并禁用网络和额外权限。
         "docker",
         [
           "run",
@@ -52,6 +54,7 @@ export async function runSandbox(request: {
         err = "",
         overLimit = false;
       const cleanup = () => {
+        // 杀掉 Docker 客户端不等于容器已退出，异常路径还需按本次唯一名称清理容器。
         child.kill();
         execFile(
           "docker",
@@ -67,6 +70,7 @@ export async function runSandbox(request: {
       child.stdout.on("data", (b) => {
         out += b;
         if (out.length > 500000) {
+          // 同时约束轨迹与输出的完整 JSON 大小，防止服务端持续累积无界字符串。
           overLimit = true;
           cleanup();
         }
@@ -107,6 +111,7 @@ export async function runSandbox(request: {
       child.stdin.end(JSON.stringify(request));
     });
   } finally {
+    // 任何成功或异常出口都释放名额，避免一次失败把运行队列永久占满。
     activeRuns--;
   }
 }

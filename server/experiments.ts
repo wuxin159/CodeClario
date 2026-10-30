@@ -7,6 +7,7 @@ import { errorExperiment } from "../shared/errorExperiments.ts";
 import type { ExperimentRecord } from "../shared/experiment.ts";
 import { runSandbox } from "./runner.ts";
 export function experimentRoutes(store: LearningDatabase) {
+  // 实验使用独立表，不写主课程 attempts 或通过状态；所属账户与课程仍由服务端限定。
   const router = Router();
   router.get("/experiments/:lessonId", requireAccount, (req, res, next) => {
     try {
@@ -62,6 +63,8 @@ export function experimentRoutes(store: LearningDatabase) {
           stderr: raw.stderr ?? "",
           compileOutput: raw.compileOutput ?? "",
           durationMs: raw.durationMs ?? 0,
+          timedOut: raw.timedOut === true,
+          ...(raw.failure ? { failure: raw.failure } : {}),
           exitCode: raw.exitCode ?? -1,
           passed: false,
           tests: [],

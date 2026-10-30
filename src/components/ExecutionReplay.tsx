@@ -25,6 +25,7 @@ export default function ExecutionReplay({
     );
   const source = useRef<HTMLDivElement>(null);
   const trace = result?.trace;
+  // 始终回放运行记录里的快照；当前草稿有改动时仅提示过期，不替换历史源码或轨迹。
   const steps = trace?.steps ?? [];
   const playback = useScenePlayback({
     sceneId: result?.id ?? "empty",
@@ -50,6 +51,7 @@ export default function ExecutionReplay({
     [position, result?.id, onViewedStep],
   );
   useEffect(() => {
+    // 只滚动代码框内部，避免每次执行步定位都把整页和正在阅读的 AI 讲解带走。
     const row = source.current?.querySelector<HTMLElement>(
       `[data-line="${step?.line}"]`,
     );

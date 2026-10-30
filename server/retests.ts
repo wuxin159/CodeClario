@@ -1,5 +1,6 @@
 import type { Lesson, Language } from "../shared/curriculum.ts";
 import type { Retest } from "../shared/flow.ts";
+// 审校题及答案由程序持有；模型只能选择适用题目，前端公开结构不包含评分答案。
 type AuditedRetest = Retest & {
   correct: number;
   explanation: string;

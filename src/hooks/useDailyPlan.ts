@@ -18,8 +18,9 @@ export function useDailyPlan(userId?: string) {
       advance?: boolean;
     } = {},
   ) {
-    if (!userId) return;
+    if (!userId) return false;
     const generation = ++seq.current;
+    // 只有当前账户的最新请求能发布结果；返回成功标记供表单决定是否清空输入。
     setBusy(true);
     setError("");
     try {
@@ -31,8 +32,10 @@ export function useDailyPlan(userId?: string) {
         value = await r.json();
       if (!r.ok || value.userId !== userId)
         throw Error(value.error ?? "今日安排暂未完成。");
-      if (owner.current === userId && seq.current === generation)
+      if (owner.current === userId && seq.current === generation) {
         setData(value);
+        return true;
+      }
     } catch (e) {
       if (owner.current === userId && seq.current === generation)
         setError((e as Error).message);
@@ -40,6 +43,7 @@ export function useDailyPlan(userId?: string) {
       if (owner.current === userId && seq.current === generation)
         setBusy(false);
     }
+    return false;
   }
   useEffect(() => {
     setData(null);

@@ -50,6 +50,7 @@ export class MissionStore {
       );
   }
   progress(userId: string, mission: Mission): MissionProgress {
+    // 优先匹配当前草稿、输入和任务身份，避免拿同课旧版本的成功记录直接结课。
     const flow = new FlowStore(this.store);
     const draft = this.store.db
       .prepare("SELECT code,stdin FROM drafts WHERE user_id=? AND lesson_id=?")
@@ -73,7 +74,7 @@ export class MissionStore {
     const latest = matching
       ? flow.get(userId, matching.id)
       : flow.latest(userId, mission.lessonId);
-    // A new mission requires fresh execution. Historical success only informs planning.
+    // 新任务需要新执行证据，既往成功只用于选课与复习安排。
     const episode =
       latest &&
       (latest.missionId === mission.id ||
@@ -96,6 +97,7 @@ export class MissionStore {
     const passed = freshRun && !!attempt?.result.passed && !stale;
     const graded = episode?.retestResult;
     const independent =
+      // 辅助、订正、重复题各自保留含义，不能因为最后答对就标为独立首次通过。
       passed &&
       !!graded?.correct &&
       !graded.corrected &&

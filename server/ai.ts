@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { requireAccount, requireMatchingAccount } from "./accounts.ts";
 
-// Account-specific keys are never persisted or returned to the client.
+// 个人密钥仅保留在当前服务进程，不写学习数据库；配置接口只返回连接状态，不回传密钥。
 const keys = new Map<string, string>();
 export const aiConfig = (userId?: string) => ({
   key: (userId && keys.get(userId)) || process.env.DEEPSEEK_API_KEY || "",

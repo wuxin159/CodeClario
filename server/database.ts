@@ -30,6 +30,7 @@ type UserRow = {
 };
 let activeHashes = 0;
 const passwordOptions = { N: 131072, r: 8, p: 1, maxmem: 192 * 1024 * 1024 };
+// 对外只返回显示所需字段，不能把密码摘要或盐随账户接口发送到浏览器。
 const publicUser = (row: UserRow): PublicUser => ({
   id: row.id,
   username: row.username,
@@ -54,6 +55,7 @@ function checkPassword(password: unknown): asserts password is string {
     throw new AccountError(400, "密码长度应为 8～128 位。");
 }
 async function hashPassword(password: string, salt: string): Promise<Buffer> {
+  // scrypt 内存开销较高，限制并发以免登录请求挤占小型演示服务器的资源。
   if (activeHashes >= 2)
     throw new AccountError(429, "账户服务繁忙，请稍后重试。");
   activeHashes++;
@@ -70,6 +72,7 @@ async function verifyPassword(
   row?: UserRow,
 ): Promise<boolean> {
   const actual = await hashPassword(
+    // 账户不存在时仍执行摘要计算，避免把该分支简化成明显更快的返回路径。
     password,
     row?.password_salt ?? "account-not-found-dummy-salt",
   );
@@ -89,6 +92,7 @@ export class LearningDatabase {
     );
     const version = (this.db.prepare("PRAGMA user_version").get() as any)
       .user_version;
+    // 迁移采用增量建表；拒绝用旧程序打开更高版本的库，避免误写已有学习数据。
     if (version > 6)
       throw new Error("数据库版本高于当前程序版本，停止启动以保护数据。");
     this.db.exec(`
@@ -242,6 +246,7 @@ export class LearningDatabase {
     return publicUser(row!);
   }
   createSession(userId: string): string {
+    // 浏览器持有随机令牌，数据库只保存其摘要；退出时可按摘要撤销对应会话。
     const token = randomBytes(32).toString("base64url");
     this.db
       .prepare("DELETE FROM sessions WHERE expires_at <= ?")
@@ -384,6 +389,7 @@ export class LearningDatabase {
       )
         throw new AccountError(400, "课程或代码内容无效，草稿未保存。");
     }
+    // 先完整校验整批草稿再开启事务，确保课程草稿与最近课程一起成功或一起回滚。
     this.db.exec("BEGIN");
     try {
       const insert = this.db.prepare(
@@ -401,6 +407,7 @@ export class LearningDatabase {
     }
   }
   saveAttempt(userId: string, code: string, stdin: string, result: RunResult) {
+    // 保存运行当时的源码和输入，历史详情不能用后来修改的草稿替代这份证据。
     const date = new Intl.DateTimeFormat("en-CA", {
       timeZone: "Asia/Singapore",
       year: "numeric",
@@ -435,6 +442,7 @@ export class LearningDatabase {
     }
   }
   attempt(userId: string, attemptId: string) {
+    // 记录 ID 不是访问凭据，查询必须同时限定会话所属账户。
     const row = this.db
       .prepare(
         "SELECT code,stdin,lesson_id,result_json FROM attempts WHERE id=? AND user_id=?",

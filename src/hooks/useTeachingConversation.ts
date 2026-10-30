@@ -25,6 +25,7 @@ export function useTeachingConversation(
         if (!res.ok || data.userId !== userId)
           throw new Error(data.error ?? "教学对话读取失败");
         if (
+          // 分页请求不能把旧账户或旧课程的教学对话接到刚切换的新页面。
           seq !== generation.current ||
           identity.current.userId !== who.userId ||
           identity.current.lessonId !== who.lessonId

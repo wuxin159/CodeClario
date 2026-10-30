@@ -16,6 +16,7 @@ export type TeachingViewContext =
       draftInput?: string;
     };
 export type TraceStep = {
+  // line 是该行执行前，return 是当前作用域退出时；两者可能使用相同的源码行号。
   line: number;
   event: "line" | "return" | "exception";
   scope: string;
@@ -84,7 +85,7 @@ export type TeachingDecision = {
   };
   sources: { id: string; title: string; excerpt: string }[];
   tools: string[];
-  provider: "deepseek";
+  provider: "deepseek" | "program";
   retestId?: string;
   nextLessonId?: string;
 };
@@ -96,6 +97,7 @@ export type Retest = {
   options: string[];
 };
 export type RetestResult = {
+  // 最终答对与独立首次通过是不同证据，帮助、订正和重复记录必须一起保留。
   assisted?: boolean;
   attempts?: number;
   corrected?: boolean;

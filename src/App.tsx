@@ -122,6 +122,30 @@ export default function App() {
   const [toast, setToast] = useState("");
   const [attemptDetail, setAttemptDetail] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  const helpDialog = useRef<HTMLElement>(null);
+  // 指南打开时把键盘焦点限制在弹窗内，关闭后回到打开它的按钮。
+  useEffect(() => {
+    if (!helpOpen) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const items = () => Array.from(helpDialog.current?.querySelectorAll<HTMLElement>(
+      'button:not(:disabled),a[href],input:not(:disabled),textarea:not(:disabled),select:not(:disabled),[tabindex="0"]',
+    ) ?? []).filter((element) => element.getClientRects().length > 0);
+    items()[0]?.focus();
+    const trap = (event: KeyboardEvent) => {
+      if (event.key !== "Tab") return;
+      const elements = items(), first = elements[0], last = elements[elements.length - 1];
+      if (!helpDialog.current?.contains(document.activeElement) ||
+        (event.shiftKey ? document.activeElement === first : document.activeElement === last)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first)?.focus();
+      }
+    };
+    document.addEventListener("keydown", trap, true);
+    return () => {
+      document.removeEventListener("keydown", trap, true);
+      if (previous?.isConnected) previous.focus();
+    };
+  }, [helpOpen]);
   const [notifications, setNotifications] = useState(false);
   const [mobileNav, setMobileNav] = useState(false);
   const currentLesson = findLesson(lessonId) || lessons[0];
@@ -995,6 +1019,7 @@ export default function App() {
         <div className="modal-overlay" onClick={() => setHelpOpen(false)}>
           <section
             className="help-modal"
+            ref={helpDialog}
             role="dialog"
             aria-modal="true"
             aria-label="学习指南"

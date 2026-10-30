@@ -1,6 +1,5 @@
 import type { TraceStep, TraceValue, ExecutionTrace } from "./flow.ts";
-// Addresses belong to one debug run. Equality uses the observed alias relations,
-// while the original addresses stay untouched in the saved/displayed trace.
+// 地址只属于一次调试运行。缓存比较按对象别名关系归一化，原始记录与界面中的地址不改写。
 export function stableTraceEvidence(trace?: ExecutionTrace) {
   if (trace?.provenance !== "native-debug-repeat") return trace;
   const labels = new Map<string, string>();
@@ -86,7 +85,9 @@ export function observedValues(step: TraceStep): TraceValue[] {
   );
 }
 export function sameFrameAfter(steps: TraceStep[], position: number) {
+  // 比较同一调用栈中的下一次停靠；return 后该作用域已结束，不能再寻找“下一行之前”。
   const current = steps[position];
+  if (current.event === "return") return undefined;
   for (let i = position + 1; i < steps.length; i++) {
     const next = steps[i];
     if (next.stack.length < current.stack.length) return undefined;
@@ -117,6 +118,8 @@ export function observedOperation(
   after?: TraceStep,
 ) {
   const statement = code.split("\n")[step.line - 1]?.trim() ?? "";
+  // 只有 line 事件表示执行前；返回或异常帧不能再次套用该源码行的赋值动画。
+  if (step.event !== "line") return { statement, kind: "statement" as const };
   const expressionLine = /["']/.test(statement)
     ? ""
     : statement.split(";")[0].split("#")[0].trim();

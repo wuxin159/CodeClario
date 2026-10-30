@@ -18,6 +18,7 @@ export function useMissions(userId?: string) {
     sequence = useRef(0);
   current.current = userId;
   const refresh = useCallback(async () => {
+    // 任务读取与账户切换可能交错，只有同账户最新一轮刷新可以更新当前首页。
     if (!userId) return;
     const seq = ++sequence.current;
     try {

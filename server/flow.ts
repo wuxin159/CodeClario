@@ -23,11 +23,13 @@ import { lessonIntroduction } from "../shared/lessonIntroduction.ts";
 import { errorExperiment } from "../shared/errorExperiments.ts";
 import type { ExperimentRecord } from "../shared/experiment.ts";
 import { stableTraceEvidence } from "../shared/executionView.ts";
+import { executionInterruption } from "../shared/executionFailure.ts";
 import { aiConfig } from "./ai.ts";
 import { searchKnowledge } from "./knowledge.ts";
 import { publicRetest, retestsFor } from "./retests.ts";
 import { courseReviewEvidence } from "./missionEvidence.ts";
 
+// 代码相同但输入不同也属于不同证据版本，用分隔符避免直接拼接造成歧义。
 const revisionFor = (code: string, stdin: string) =>
   createHash("sha256")
     .update(code + "\0" + stdin)
@@ -82,8 +84,8 @@ function lessonViewContext(
     stepIndex: raw.stepIndex,
   };
 }
-// Bump this when teaching constraints change so cached decisions are re-evaluated.
-const policyVersion = "ai-flow-2026-10-28-guided-purpose-2";
+// 教学约束变化时更新策略号，使旧缓存重新校验，而不是继续展示旧规则生成的决定。
+const policyVersion = "ai-flow-2026-10-29-interruption-1";
 const introductionVersion = "foundation-purpose-v2";
 const activeMissionId = (
   store: LearningDatabase,
@@ -127,6 +129,9 @@ const executionEvidence = (r?: RunResult | null) =>
         stdout: r.stdout,
         stderr: r.stderr,
         compileOutput: r.compileOutput,
+        exitCode: r.exitCode,
+        timedOut: r.timedOut,
+        failure: r.failure,
         tests: r.tests,
         trace: stableTraceEvidence(r.trace),
       }
@@ -582,6 +587,7 @@ export function validateDecision(
   additionalEvidence: string[] = [],
   availableRetestIds?: string[],
 ): TeachingDecision {
+  // 模型只提出候选动作；能否引用轨迹、登记预测或出复测题，必须经过这里的业务约束。
   if (
     !raw ||
     !["ask", "explain", "visualize", "retest", "continue"].includes(raw.action)
@@ -863,6 +869,13 @@ async function decide(
   const config = aiConfig(userId);
   const attempt = task.attemptId ? store.attempt(userId, task.attemptId) : null;
   const result = attempt?.result;
+  const interruption = executionInterruption(result);
+  // 终止或空诊断不足以证明语法错误；这类反馈由程序给出事实说明，不让模型补猜错因。
+  if (interruption && (!isViewEvent(task.trigger) || task.viewContext?.kind === "execution"))
+    return {
+      action: "explain", title: "先确认这次执行为什么没有完成", summary: interruption,
+      evidence: ["execution"], sources: [], tools: ["核对执行终止状态"], provider: "program",
+    } satisfies TeachingDecision;
   const study = store.studyRecords(userId)[lesson.id] ?? {};
   const scene = buildScene(
     lesson,
@@ -915,6 +928,12 @@ async function decide(
   const observedExperiment: ExperimentRecord | null = experimentRow
     ? JSON.parse(experimentRow.record_json)
     : null;
+  const experimentInterruption = executionInterruption(observedExperiment?.result);
+  if (experimentInterruption && experimentContext)
+    return {
+      action: "explain", title: "先确认这次实验的执行状态", summary: experimentInterruption,
+      evidence: ["experiment_view"], sources: [], tools: ["核对实验终止状态"], provider: "program",
+    } satisfies TeachingDecision;
   const priorExperimentRow = observedExperiment
     ? (store.db
         .prepare(
@@ -926,8 +945,7 @@ async function decide(
     ? JSON.parse(priorExperimentRow.record_json)
     : null;
   const exp = errorExperiment(lesson);
-  // Give the tutor its own recent explanations, not just student answers.
-  // Only the same account, course and learning mission can contribute context.
+  // 补入老师最近的讲解以保持对话连贯，但上下文只能来自同账户、同课、同学习任务。
   const recentTeaching = (
     store.db
       .prepare(
@@ -1132,6 +1150,9 @@ async function decide(
       ? {
           passed: result.passed,
           status: result.status,
+          exitCode: result.exitCode,
+          timedOut: result.timedOut,
+          failure: result.failure,
           stdout: result.stdout,
           stderr: result.stderr.slice(0, 1800),
           compileOutput: result.compileOutput.slice(0, 1800),
@@ -1283,6 +1304,7 @@ async function decide(
         throw new Error("AI工具请求超出本次限制。");
       messages.push(message);
       for (const call of message.tool_calls) {
+        // 只识别白名单工具及受限参数，模型返回的字符串不能变成任意宿主操作。
         let value: unknown = { error: "工具或参数无效" };
         try {
           const args = JSON.parse(call.function.arguments || "{}");
@@ -1954,6 +1976,7 @@ export function flowRoutes(store: LearningDatabase) {
         ? JSON.parse(cacheMissionRow.mission_json)
         : null;
       const key = hash({
+        // 缓存依赖完整证据而不只是源码：作答、复测、任务与观察位置变化后都需重新分析。
         policyVersion,
         mission: cacheMission?.id ?? null,
         missionReview: cacheMission
@@ -2008,6 +2031,7 @@ export function flowRoutes(store: LearningDatabase) {
       const decision = await decide(userId, lesson, task, store, c, previous);
       if (c.signal.aborted) return;
       const latest = flows.get(userId, task.id);
+      // 等待模型期间学生可能继续操作；证据已更新时不能把过时讲解写回当前任务。
       if (!latest || latest.updatedAt !== before)
         throw new AccountError(409, "分析期间学习证据已更新，请重新分析。");
       if (

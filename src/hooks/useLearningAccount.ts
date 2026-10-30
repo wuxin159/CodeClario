@@ -62,6 +62,7 @@ export function useLearningAccount() {
 
   const acceptAccount = useCallback(
     (next: PublicUser | null, learning: LearningState) => {
+      // 切换账户时提高代次并取消旧保存计划，旧请求返回后不得覆盖新账户的页面状态。
       epoch.current++;
       clearTimeout(saveTimer.current);
       identity.current = next?.id ?? null;
@@ -123,6 +124,7 @@ export function useLearningAccount() {
   }, [readSession]);
 
   const flush = useCallback(() => {
+    // 保存串行排队，并在发送及返回时复核身份，避免慢请求覆盖新草稿或跨账户串写。
     const requestedUser = identity.current;
     const operation = saveQueue.current
       .catch(() => {})

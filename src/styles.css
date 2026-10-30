@@ -11,6 +11,11 @@
   --border: #e8eaef;
   --accent-soft: #9fb5f3;
 }
+
+/* 只作用于编辑器加载失败的备用区；深色输入框需覆盖全站表单聚焦样式，保持浅字可读。 */
+.editor-recovery { display: flex; flex-direction: column; gap: 12px; padding: 16px; height: 100%; min-height: 240px; }
+.learning-workspace .editor-recovery p { margin: 0; font-size: 14px; color: #eef5ff; }
+.app-shell .learning-workspace .editor-recovery textarea { flex: 1; min-height: 180px; width: 100%; resize: vertical; font: 14px/1.6 Consolas, monospace; color: #eef5ff; background: #10223c; border: 1px solid #829ab6; border-radius: 8px; padding: 12px; }
 * {
   box-sizing: border-box;
 }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { findLesson, type RunResult } from "../../shared/curriculum";
+import { executionInterruption } from "../../shared/executionFailure";
 
 export default function AttemptDetail({
   id,
@@ -79,6 +80,7 @@ export default function AttemptDetail({
             <pre>{data.stdin || "（空）"}</pre>
             <h3>运行结果 · {data.result.passed ? "样例通过" : "未通过"}</h3>
             <pre>{data.result.stdout || "（无标准输出）"}</pre>
+            {executionInterruption(data.result) && <p>{executionInterruption(data.result)}</p>}
             {(data.result.stderr || data.result.compileOutput) && (
               <pre className="study-error">
                 {data.result.compileOutput || data.result.stderr}

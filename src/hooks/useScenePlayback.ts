@@ -27,6 +27,7 @@ export function useScenePlayback({
   speedRef.current = speed;
   callback.current = onPosition;
   const publish = (value: number) => {
+    // 连续时间用于动画，整数位置用于教学步骤，避免每一帧都触发语义状态更新。
     const next = clampTime(value, count);
     clock.current = next;
     setTime(next);
@@ -51,6 +52,7 @@ export function useScenePlayback({
     setTime(position);
   }, [sceneId]);
   useEffect(() => {
+    // 切换观察上下文或减少动效时停在完整步骤，保留用户可控的阅读位置。
     setMode("idle");
     const stop = Math.floor(clock.current);
     clock.current = stop;

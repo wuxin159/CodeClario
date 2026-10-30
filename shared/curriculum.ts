@@ -258,6 +258,7 @@ const languageNotes: Record<Language, string[]> = {
 };
 
 const foundationLessons: Lesson[] = languages.flatMap((language) =>
+  // 旧课程 ID 保持稳定，展示顺序由 order 决定，防止扩课后历史学习记录关联到别的知识点。
   topics.map((topic, index) => ({
     ...topic,
     explanation: [...topic.explanation, languageNotes[language.id][index]],
@@ -293,6 +294,7 @@ export const findLesson = (id: string) =>
   lessons.find((lesson) => lesson.id === id);
 
 export type RunResult = {
+  // 运行快照以 revision 绑定源码和输入；可选中断字段兼容数据库中已有的历史 JSON。
   trace?: import("./flow").ExecutionTrace;
   id: string;
   revision: string;
@@ -303,6 +305,8 @@ export type RunResult = {
   compileOutput: string;
   exitCode: number;
   durationMs: number;
+  timedOut?: boolean;
+  failure?: { phase: "compile" | "run"; kind: "timeout" | "terminated"; signal?: number };
   passed: boolean;
   tests: { input: string; expected: string; actual: string; passed: boolean }[];
 };

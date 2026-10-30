@@ -1,3 +1,4 @@
+// 这里定义教学策略，不授予模型执行权限；可调用的工具与参数仍由服务端白名单控制。
 export const teachingSkills = {
   explain: {
     name: "概念解释",

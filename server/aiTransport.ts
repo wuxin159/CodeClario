@@ -1,5 +1,4 @@
-// JSON teaching requests use a bounded retry for dropped connections / 429 / 5xx.
-// Reading the body here also catches connections cut after the response headers.
+// 只清理模型常见的 JSON 外壳，不执行返回内容；字段与教学动作仍由业务层校验。
 export function parseAIJSON(content: unknown) {
   if (typeof content !== "string")
     throw new Error("AI未返回完整的结构化内容。");
@@ -15,6 +14,7 @@ export async function fetchAI(
   url: string,
   init: RequestInit,
 ): Promise<Response> {
+  // 将响应体也纳入有限重试，覆盖“收到响应头后断流”；取消信号仍必须立即生效。
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const response = await fetch(url, init),

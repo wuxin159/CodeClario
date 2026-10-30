@@ -3,8 +3,7 @@ import type { Mission } from "../shared/mission.ts";
 import { findLesson } from "../shared/curriculum.ts";
 import { retestsFor } from "./retests.ts";
 
-// Shared by the task gate and the model context: a historical answer cannot
-// satisfy a newly started task's course check.
+// 完成门槛和模型上下文共用同一份判定：历史答对只能辅助规划，不能替代新任务的本次作答。
 export function courseReviewEvidence(
   store: LearningDatabase,
   userId: string,

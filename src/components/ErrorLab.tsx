@@ -1,23 +1,28 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
 import { Play, LoaderCircle, ArrowLeft } from "lucide-react";
 import type { Lesson } from "../../shared/curriculum";
 import type { TeachingViewContext } from "../../shared/flow";
 import type { ExperimentRecord } from "../../shared/experiment";
 import { errorExperiment } from "../../shared/errorExperiments";
 import ExecutionReplay from "./ExecutionReplay";
-const Editor = lazy(() => import("./CodeEditor"));
+import Editor from "./RecoverableEditor";
+import { executionInterruption } from "../../shared/executionFailure";
 export default function ErrorLab({
   lesson,
   userId,
   context,
   onContext,
   onAnalyze,
+  runRef,
+  active,
 }: {
   lesson: Lesson;
   userId?: string;
   context: string;
   onContext: (v: TeachingViewContext) => void;
   onAnalyze: (v: TeachingViewContext) => void;
+  runRef?: Ref<{ run: () => void }>;
+  active: boolean;
 }) {
   const experiment = errorExperiment(lesson);
   const [code, setCode] = useState(experiment.before),
@@ -28,6 +33,8 @@ export default function ErrorLab({
     [view, setView] = useState<"edit" | "replay">("edit"),
     [referenceSeen, setReferenceSeen] = useState(false);
   const [input, setInput] = useState(experiment.stdin);
+  const edited = useRef(false);
+  // 初次恢复实验记录可能较慢，不能用旧记录覆盖恢复期间学生刚输入的实验草稿。
   const observed: TeachingViewContext = {
     kind: "experiment",
     experimentId: experiment.id,
@@ -38,6 +45,7 @@ export default function ErrorLab({
   };
   useEffect(() => {
     let current = true;
+    edited.current = false;
     setCode(experiment.before);
     setInput(experiment.stdin);
     setRecord(null);
@@ -48,9 +56,11 @@ export default function ErrorLab({
         .then((data) => {
           if (current && data.userId === userId && data.record) {
             setRecord(data.record);
-            setCode(data.record.code);
-            setInput(data.record.stdin);
-            setReferenceSeen(data.record.referenceSeen);
+            if (!edited.current) {
+              setCode(data.record.code);
+              setInput(data.record.stdin);
+              setReferenceSeen(data.record.referenceSeen);
+            }
           }
         })
         .catch(() => {
@@ -61,8 +71,9 @@ export default function ErrorLab({
     };
   }, [lesson.id, userId]);
   useEffect(() => {
-    onContext(observed);
-  }, [lesson.id, record?.id, position, code, input]);
+    // 隐藏页签仍保留草稿，但不能把后台实验帧发布成当前正在观察的教学画面。
+    if (active) onContext(observed);
+  }, [active, lesson.id, record?.id, position, code, input]);
   async function run() {
     if (!userId || busy) return;
     setBusy(true);
@@ -106,6 +117,7 @@ export default function ErrorLab({
       setBusy(false);
     }
   }
+  useImperativeHandle(runRef, () => ({ run: () => void run() }));
   return (
     <section className="error-lab" aria-label="本课错误实验">
       <header>
@@ -121,6 +133,7 @@ export default function ErrorLab({
           disabled={busy}
           aria-pressed={code === experiment.before}
           onClick={() => {
+            edited.current = true;
             setCode(experiment.before);
             setView("edit");
           }}
@@ -131,6 +144,7 @@ export default function ErrorLab({
           disabled={busy}
           aria-pressed={code === experiment.after}
           onClick={() => {
+            edited.current = true;
             setReferenceSeen(true);
             setCode(experiment.after);
             setView("edit");
@@ -146,13 +160,11 @@ export default function ErrorLab({
       </div>
       {view === "edit" ? (
         <div className="experiment-editor">
-          <Suspense fallback={<p>正在载入实验编辑器…</p>}>
             <Editor
               value={code}
-              onChange={setCode}
+              onChange={(value) => { edited.current = true; setCode(value); }}
               language={lesson.language}
             />
-          </Suspense>
         </div>
       ) : (
         record && (
@@ -172,7 +184,7 @@ export default function ErrorLab({
             aria-label="实验标准输入"
             value={input}
             maxLength={4000}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => { edited.current = true; setInput(e.target.value); }}
             rows={2}
           />
         </details>
@@ -184,6 +196,7 @@ export default function ErrorLab({
       )}
       <div className="experiment-run">
         <small>
+          实验草稿在本课页签间保留；运行后保存实验记录。{" "}
           {referenceSeen
             ? "已看过修正参考，原课程草稿保持不变。"
             : "可以只改一个数字或符号，再运行对比。"}{" "}
@@ -213,6 +226,7 @@ export default function ErrorLab({
             {record.result.stdout ||
               record.result.stderr ||
               record.result.compileOutput ||
+              executionInterruption(record.result) ||
               "（无标准输出）"}
           </pre>
           <small>实验结果与主编辑器、课程成绩分别保存。</small>

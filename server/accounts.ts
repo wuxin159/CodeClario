@@ -20,6 +20,7 @@ export const requireAccount: RequestHandler = (req, res, next) => {
   next();
 };
 export const requireMatchingAccount: RequestHandler = (req, res, next) => {
+  // 身份以服务端会话为准；请求中的 userId 只用于发现旧页面仍在提交另一个账户的数据。
   if (!req.user) {
     res.status(401).json({ error: "请先登录。" });
     return;
@@ -34,6 +35,7 @@ export const requireMatchingAccount: RequestHandler = (req, res, next) => {
   next();
 };
 const cookieOptions = {
+  // 禁止脚本读取会话；生产环境启用 Secure，开发环境仍可在本机 HTTP 下验证账户流程。
   httpOnly: true,
   sameSite: "lax" as const,
   secure: process.env.SESSION_SECURE === "true",

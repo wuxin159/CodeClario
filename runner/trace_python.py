@@ -17,6 +17,7 @@ class BoundedOutput(io.StringIO):
         return super().write(value)
 
 def supported(source):
+    # 此处只限定回放采集能力，不代替 Docker 安全隔离；不支持时仍可走普通运行流程。
     try:
         tree = ast.parse(source, filename='main.py')
     except SyntaxError:
@@ -57,6 +58,7 @@ def observe(source):
         if event not in ('line','return','exception'):
             return trace
         if len(steps) >= 80:
+            # 停止收集而不把已有轨迹伪装成完整执行，truncated 会随结果返回给界面和老师。
             truncated = True
             return trace
         frames, f = [], frame
@@ -85,7 +87,7 @@ def observe(source):
     finally:
         sys.settrace(None)
         sys.stdout, sys.stderr = previous_out, previous_err
-    # Bound the complete JSON envelope, including escaped Unicode/output.
+    # 限制整份 JSON 的字节数（含转义文字和输出），不能仅按采集步数估算传输体积。
     result = {'stdout':output.getvalue(),'stderr':errors.getvalue()[:8000],'exitCode':status,
               'trace':{'status':'available','truncated':truncated,'steps':steps}}
     while steps and len(json.dumps(result,ensure_ascii=False).encode()) > 180000:
