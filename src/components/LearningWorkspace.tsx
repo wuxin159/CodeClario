@@ -45,6 +45,8 @@ import { useTeachingFlow } from "../hooks/useTeachingFlow";
 import TeachingConversation from "./TeachingConversation";
 import LiveEvidence from "./LiveEvidence";
 import ErrorLab from "./ErrorLab";
+import DiscoveryExperience from "./DiscoveryExperience";
+import PredictionComparison from "./PredictionComparison";
 import type { TeachingViewContext } from "../../shared/flow";
 import { lessonIntroduction } from "../../shared/lessonIntroduction";
 import type { Missions } from "../hooks/useMissions";
@@ -108,7 +110,15 @@ export default function LearningWorkspace(p: Props) {
   const [mode, setMode] = useState<"visual" | "code" | "replay" | "experiment">(
     "code",
   );
+  const [mobilePane, setMobilePane] = useState<"teach" | "code" | "observe">("teach");
+  useEffect(() => {
+    setMobilePane(current => current === "teach" ? current :
+      mode === "code" || mode === "experiment" ? "code" : "observe");
+  }, [mode]);
   const [experimentView, setExperimentView] = useState<TeachingViewContext>();
+  const [discoveryOpen, setDiscoveryOpen] = useState(false);
+  const [adopting, setAdopting] = useState(false);
+  const [adoptError, setAdoptError] = useState("");
   const experimentRun = useRef<{ run: () => void }>(null);
   const [experimentOpened, setExperimentOpened] = useState(false);
   // 实验首次打开后只隐藏而不卸载，保证同课程页签来回切换时未运行的改稿仍在。
@@ -196,6 +206,7 @@ export default function LearningWorkspace(p: Props) {
       setMode("visual");
       setPane("visual");
     }
+    setMobilePane("observe");
     requestAnimationFrame(() =>
       document
         .getElementById("task-workbench")
@@ -405,6 +416,7 @@ export default function LearningWorkspace(p: Props) {
     const code = draft,
       stdin = savedInput;
     setMode("code");
+    setMobilePane("code");
     setPane("code");
     setRunning(true);
     setRunError("");
@@ -426,6 +438,7 @@ export default function LearningWorkspace(p: Props) {
       setRunInput(stdin);
       if (showAnimation && data.trace?.status === "available") {
         setMode("replay");
+        setMobilePane("observe");
         setPane("visual");
       }
       p.onRun(data);
@@ -496,9 +509,11 @@ export default function LearningWorkspace(p: Props) {
     }
   }
   return (
-    <main className="learning-workspace" data-mode={mode} onKeyDownCapture={(event) => {
+    <main className="learning-workspace modern-workspace" data-mode={mode} data-mobile-pane={mobilePane} onKeyDownCapture={(event) => {
       // 在编辑器默认键位之前消费快捷键，并按当前模式分派，防止插空行或运行错代码。
       if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+        // 对话表单和独立对照实验有自己的提交语义，不能触发隐藏的主程序运行。
+        if ((event.target as HTMLElement).closest('.teacher-composer, .discovery, .prediction-comparison, .study-coach, [role="dialog"]')) return;
         event.preventDefault();
         event.stopPropagation();
         if (mode === "experiment") experimentRun.current?.run();
@@ -602,30 +617,36 @@ export default function LearningWorkspace(p: Props) {
           <h1>{activeMission?.title ?? lesson.title}</h1>
           <p>{lesson.task}</p>
         </div>
+        <div className="workspace-purpose-actions">
+          {!activeMission && <button className="button primary" disabled={adopting || p.missions.busy} onClick={async()=>{
+            setAdopting(true); setAdoptError("");
+            try { await p.onFlush(); if(await p.missions.adopt(lesson.id)) await flow.enter(); }
+            catch(e) { setAdoptError((e as Error).message); }
+            finally { setAdopting(false); }
+          }}>{adopting ? "正在准备…" : "学习这节课"}<ArrowRight size={15}/></button>}
+          {lesson.language === "c" && ["c-2", "c-13"].includes(lesson.id) && <button className="button secondary" aria-expanded={discoveryOpen} onClick={()=>setDiscoveryOpen(v=>!v)}>{discoveryOpen ? "收起对照实验" : "做个副本与指针对照实验"}</button>}
+        </div>
       </header>
+      {adoptError && <p role="alert" className="task-warning">{adoptError}</p>}
+      {discoveryOpen && <div className="workspace-discovery"><DiscoveryExperience userId={userId} compact onContinue={()=>setDiscoveryOpen(false)} /></div>}
       <nav className="task-mobile-navigation" aria-label="任务工作区域">
         <button
-          onClick={() =>
-            document
-              .getElementById("current-teaching-task")
-              ?.scrollIntoView({ block: "start" })
-          }
+          aria-pressed={mobilePane === "teach"}
+          onClick={() => setMobilePane("teach")}
         >
-          AI老师{flow.busy ? " · 讲解中" : ""}
+          教学{flow.busy ? " · 讲解中" : ""}
         </button>
         <button
-          onClick={() =>
-            document
-              .getElementById("task-workbench")
-              ?.scrollIntoView({ block: "start" })
-          }
+          aria-pressed={mobilePane === "code"}
+          onClick={() => { setMobilePane("code"); setMode("code"); setPane("code"); }}
         >
-          代码与执行观察
+          代码
         </button>
-        <button onClick={() => setResourcesOpen(true)}>课程资料</button>
+        <button aria-pressed={mobilePane === "observe"} onClick={() => { setMobilePane("observe"); setMode("replay"); setPane("visual"); }}>观察</button>
       </nav>
       <div className={`learning-grid work-mode-${mode}`}>
         <TeachingConversation
+          compact
           lesson={lesson}
           running={running}
           onCompose={() => setVisualFocus((v) => v + 1)}
@@ -724,6 +745,7 @@ export default function LearningWorkspace(p: Props) {
             <button
               onClick={() => {
                 setMode("code");
+                setMobilePane("code");
                 setPane("code");
                 setResourcesOpen(false);
                 document
@@ -756,6 +778,7 @@ export default function LearningWorkspace(p: Props) {
                 onClick={() => {
                   p.onDraft(lesson.solution);
                   setMode("code");
+                  setMobilePane("code");
                   setPane("code");
                   setResourcesOpen(false);
                   notify("已放入参考代码，请运行并尝试理解检查。");
@@ -802,6 +825,7 @@ export default function LearningWorkspace(p: Props) {
               className={mode === "code" ? "selected" : ""}
               onClick={() => {
                 setMode("code");
+                setMobilePane("code");
                 setPane("code");
               }}
             >
@@ -868,6 +892,7 @@ export default function LearningWorkspace(p: Props) {
               <button
                 onClick={() => {
                   setMode("code");
+                  setMobilePane("code");
                   setPane("code");
                 }}
               >
@@ -902,6 +927,14 @@ export default function LearningWorkspace(p: Props) {
             </div>
           )}
           <div className="study-code-body" hidden={mode !== "code"}>
+            <PredictionComparison
+              prediction={!flow.stale ? flow.task?.prediction : undefined}
+              comparison={flow.task?.attemptId === result?.id && !flow.stale ? flow.task?.comparison : undefined}
+              result={result} stale={stale} revisionKey={lesson.id + "\0" + draft + "\0" + savedInput}
+              busy={running || flow.busy || flow.loading} loading={flow.loading}
+              hasRun={!!flow.task?.attemptId && !flow.stale}
+              onPredict={async(value)=>{await flow.predict({kind:"output",value});}}
+            />
             <div className="study-editor-caption">
               <code>
                 main.{lesson.language === "python" ? "py" : lesson.language} ·{" "}
@@ -949,7 +982,8 @@ export default function LearningWorkspace(p: Props) {
                 <button
                   onClick={() => {
                     if (flow.task?.decision?.action === "retest") {
-                      document
+                      setMobilePane("teach");
+                      requestAnimationFrame(() => document
                         .getElementById("current-migration-check")
                         ?.scrollIntoView({
                           block: "center",
@@ -958,7 +992,7 @@ export default function LearningWorkspace(p: Props) {
                           ).matches
                             ? "auto"
                             : "smooth",
-                        });
+                        }));
                       return;
                     }
                     setMode("replay");

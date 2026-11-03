@@ -3,6 +3,12 @@ import { visualLesson, type VisualKind } from "./visualLessons.ts";
 
 type Entry = { why: string; goal: string; firstStep: string; analogy: string };
 const entries: Record<VisualKind, Entry> = {
+  bubble: {
+    why: "学过循环和数组后，可以用它们解决一个完整问题：把一组数排好顺序。关键是把大任务拆成能重复的小步骤。",
+    goal: "解释相邻比较、交换和两层循环怎样配合，并用不同输入验证排序。",
+    firstStep: "先只比较最左边两项，再观察一次完整扫描；暂时不要求记住整段代码。",
+    analogy: "从左到右整理一排卡片，一轮让最大的卡片到右端，再整理剩下的部分。",
+  },
   output: {
     why: "先让程序在屏幕上说一句话，你才能看见自己给计算机的指令有没有生效。",
     goal: "自己改一句输出，并分清代码和屏幕结果。",

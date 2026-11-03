@@ -1,5 +1,6 @@
 import type { Lesson } from "./curriculum.ts";
 import { visualLesson } from "./visualLessons.ts";
+import { bubbleProgram, BUBBLE_INPUT } from "./bubbleSort.ts";
 export type ErrorExperiment = {
   id: string;
   title: string;
@@ -38,7 +39,13 @@ export function errorExperiment(lesson: Lesson): ErrorExperiment {
     why = "",
     question = "";
   const kind = visualLesson(lesson).kind;
-  if (kind === "output") {
+  if (kind === "bubble") {
+    title = "只扫描一轮，为什么还没排好";
+    why = "内层循环负责一次扫描，外层循环负责重复；一个最大值就位不代表整个数组都有序。";
+    question = "比较一轮与完整排序：已经就位的尾部怎样扩大？左边还存在哪些逆序的相邻项？";
+    before = bubbleProgram(lesson.language, { values: BUBBLE_INPUT, onePass: true });
+    after = bubbleProgram(lesson.language, { values: BUBBLE_INPUT });
+  } else if (kind === "output") {
     title = "文字为什么不能少一对引号";
     why = "程序需要分清一段文字和代码中的名字。";
     question = "错误出现在哪个符号附近？引号帮助程序区分了什么？";

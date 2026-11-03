@@ -1,5 +1,6 @@
 import type { Lesson, Language } from "../shared/curriculum.ts";
 import type { Retest } from "../shared/flow.ts";
+import { bubbleProgram } from "../shared/bubbleSort.ts";
 // 审校题及答案由程序持有；模型只能选择适用题目，前端公开结构不包含评分答案。
 type AuditedRetest = Retest & {
   correct: number;
@@ -510,12 +511,25 @@ for (const language of ["c", "cpp", "python"] as const) {
   variant.id = `${language}-loop-v2`;
   retestBank.push(variant);
 }
+// 新题变换输入和轮数，检验学生是否理解“一轮”的含义，而不是背下首页的排序结果。
+for (const language of ["c", "cpp", "python"] as const) {
+  retestBank.push(item(language, "bubble", "一轮扫描之后的数组",
+    bubbleProgram(language, { values: [4, 1, 3, 2], onePass: true }),
+    "1\n3\n2\n4", ["1\n2\n3\n4", "4\n1\n3\n2"],
+    "这一轮把4带到最右端；3和2仍然逆序，尚未完成整个排序。"));
+  const second = item(language, "bubble", "重复值仍要保留",
+    bubbleProgram(language, { values: [2, 2, 1] }),
+    "1\n2\n2", ["1\n2", "2\n1\n2"],
+    "排序只改变顺序，不会删除重复元素。相等时不交换，两个2仍然都在结果中。");
+  second.id = `${language}-bubble-v2`;
+  retestBank.push(second);
+}
 export function retestsFor(lesson: Lesson) {
   // Output-only entry lessons have not introduced assignment yet. Use their
   // reviewed course question instead of testing an unrelated prerequisite.
   if (lesson.index === 0) return [];
   const text = [lesson.title, ...lesson.concepts].join(" ");
-  const category = /算术|整数除法|优先级/.test(text)
+  const category = lesson.topic === "bubble-sort" ? "bubble" : /算术|整数除法|优先级/.test(text)
     ? "arithmetic"
     : /字符与字符编码/.test(text)
       ? "character"

@@ -15,6 +15,7 @@ import { missionRoutes } from "./missions.ts";
 import { dailyRoutes } from "./daily.ts";
 import { runSandbox, runnerImage } from "./runner.ts";
 import { experimentRoutes } from "./experiments.ts";
+import { discoveryRoutes } from "./discovery.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const store = new LearningDatabase(
@@ -55,6 +56,7 @@ app.use("/api", flowRoutes(store));
 app.use("/api", missionRoutes(store));
 app.use("/api", dailyRoutes(store));
 app.use("/api", experimentRoutes(store));
+app.use("/api", discoveryRoutes(store));
 
 app.get("/api/status", async (req, res) => {
   let runner = false;

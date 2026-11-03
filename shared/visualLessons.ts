@@ -9,6 +9,7 @@ export type VisualKind =
   | "branch"
   | "loop"
   | "array"
+  | "bubble"
   | "call"
   | "character"
   | "cstring"
@@ -36,6 +37,11 @@ export type VisualLesson = {
   legend: string;
 };
 const common: Record<string, VisualLesson> = {
+  "bubble-sort": {
+    kind: "bubble", question: "一轮结束，哪些位置已经确定？",
+    insight: "内层循环逐对比较，较大的元素向右移动；外层循环重复扫描，已就位的尾部逐轮扩大。",
+    legend: "相邻比较 → 必要时交换 → 本轮最大值就位；三条赋值合并展示一次交换",
+  },
   output: {
     kind: "output",
     question: "第二次输出，会覆盖第一行吗？",

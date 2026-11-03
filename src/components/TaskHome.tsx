@@ -8,7 +8,7 @@ import {
   LoaderCircle,
   Target,
 } from "lucide-react";
-import { findLesson, languages, type Language } from "../../shared/curriculum";
+import { findLesson, languages, lessons, type Language } from "../../shared/curriculum";
 import { entryQuestions, type LearningGoal } from "../../shared/mission";
 import type { PublicUser } from "../../shared/account";
 import type { Missions } from "../hooks/useMissions";
@@ -31,6 +31,7 @@ export default function TaskHome({
   onCourses,
   onRecords,
   onRequireAuth,
+  onExplore,
 }: {
   missions: Missions;
   user: PublicUser | null;
@@ -39,6 +40,7 @@ export default function TaskHome({
   onCourses: () => void;
   onRecords: () => void;
   onRequireAuth: () => void;
+  onExplore?: () => void;
 }) {
   const [editing, setEditing] = useState(false),
     [language, setLanguage] = useState<Language>("python"),
@@ -53,11 +55,26 @@ export default function TaskHome({
     !active && !editing && (daily.loading || daily.busy || !!daily.plan);
   const configure = !active || editing;
   const [localError, setLocalError] = useState("");
+  const refreshAI = () => {
+    // 连接后顺序刷新，避免旧的空计划读取结果覆盖刚生成的新安排。
+    void (async () => {
+      try { await m.refresh(); if (daily.plan) await daily.refresh(); else await daily.prepare(); }
+      catch (error) { setLocalError((error as Error).message); }
+    })();
+  };
+  const openConnection = () => {
+    // 复用现有密钥表单，标题入口只展开并定位，避免维护两份连接状态。
+    const panel = document.querySelector<HTMLDetailsElement>(".task-home .ai-connection");
+    if (!panel) return;
+    panel.open = true;
+    panel.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "center" });
+    panel.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
+  };
   return (
-    <main className="page-content task-home">
+    <main className="page-content task-home modern-task-home">
       <div className="task-home-heading">
         <div>
-          <h1>我的学习</h1>
+          <h1>{user ? user.displayName + (active ? "，接着学。" : "，从这里开始。") : "我的学习"}</h1>
           <p>
             {active
               ? m.progress?.canAdvance
@@ -68,13 +85,13 @@ export default function TaskHome({
                 : "选择目标与起点，开始一项可验证的任务。"}
           </p>
         </div>
-        <span className="home-date">
+        <div className="modern-home-tools"><span className="home-date">
           {new Intl.DateTimeFormat("zh-CN", {
             month: "long",
             day: "numeric",
             weekday: "long",
           }).format(new Date())}
-        </span>
+        </span>{user && !m.loading && !m.configured && <button className="modern-connect-entry" onClick={openConnection}>连接AI老师<ArrowRight size={14}/></button>}</div>
       </div>
       {user && (
         <DailyWelcome
@@ -86,14 +103,15 @@ export default function TaskHome({
         />
       )}
       {dailyLeads ? (
-        <div className="daily-manual">
+        <div className="daily-manual-wrap"><div className="daily-manual">
           <button className="text-button" onClick={() => setEditing(true)}>
             自行设置学习目标
           </button>
           <button className="text-button" onClick={onCourses}>
             自主选择课程
           </button>
-        </div>
+          {onExplore && <button className="text-button" onClick={onExplore}>先做一个小实验<ArrowRight size={15}/></button>}
+        </div>{localError && <p className="mission-error" role="alert">{localError}</p>}<AIConnection userId={user?.id} onSaved={refreshAI} onRequireAuth={onRequireAuth}/></div>
       ) : (
         <div className="task-home-columns">
           <section className="task-home-primary">
@@ -239,7 +257,7 @@ export default function TaskHome({
                     ? "AI安排的当前任务"
                     : "自主选择的当前任务"}
                   <span className="task-status">
-                    {m.progress?.canAdvance ? "待继续" : "进行中"}
+                    {m.progress?.canAdvance ? "已验证 · 待继续" : "进行中"}
                   </span>
                 </div>
                 <div className="task-home-title">
@@ -268,7 +286,12 @@ export default function TaskHome({
                     <button
                       className="button primary"
                       disabled={m.busy}
-                      onClick={() =>
+                      onClick={() => {
+                        // 完成练习不代表已连接模型，先引导连接，避免向规划接口发出必然失败的请求。
+                        if (!m.configured) {
+                          openConnection();
+                          return;
+                        }
                         void (async () => {
                           setLocalError("");
                           try {
@@ -277,10 +300,14 @@ export default function TaskHome({
                           } catch (e) {
                             setLocalError((e as Error).message);
                           }
-                        })()
-                      }
+                        })();
+                      }}
                     >
-                      {m.busy ? "AI正在安排…" : "完成任务，AI安排下一项"}
+                      {m.busy
+                        ? "AI正在安排…"
+                        : m.configured
+                          ? "完成任务，AI安排下一项"
+                          : "连接AI，安排下一步"}
                     </button>
                   )}
                   {m.progress?.canAdvance && (
@@ -385,7 +412,7 @@ export default function TaskHome({
             )}
             <AIConnection
               userId={user?.id}
-              onSaved={() => void m.refresh()}
+              onSaved={refreshAI}
               onRequireAuth={onRequireAuth}
             />
           </section>
@@ -430,15 +457,16 @@ export default function TaskHome({
                 <>
                   <p>保存预测并运行后，实际结果与理解检查会记录在这里。</p>
                   <h3>从入门开始</h3>
-                  <p>C、C++、Python各18节课程。先读懂一小段，再编写和验证。</p>
+                  <p>C、C++、Python共{lessons.length}节课程。先读懂一小段，再编写和验证。</p>
                 </>
               )}
             </section>
+            {onExplore && <button className="resource-entry modern-experiment-entry" onClick={onExplore}><div><b>做一个对照实验</b><span>看看你的判断与真实执行有什么不同</span></div><ArrowRight size={17}/></button>}
             <button className="resource-entry" onClick={onCourses}>
               <BookOpen />
               <div>
                 <b>课程中心</b>
-                <span>54节课程 · C / C++ / Python</span>
+                <span>{lessons.length}节课程 · C / C++ / Python</span>
               </div>
               <ChevronRight size={17} />
             </button>

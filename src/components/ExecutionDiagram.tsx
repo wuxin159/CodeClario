@@ -28,6 +28,7 @@ export default function ExecutionDiagram({
     roots = observedValues(step),
     all = flattenedValues(roots),
     op = observedOperation(code, step, after);
+  const scopeLabel = step.scope === "<module>" || step.scope === "<program>" ? "主程序" : step.scope;
   const nextPoint = steps[position + 1],
     // 输出只取相邻已采集状态的实际差异，不根据源码语句自行推测会打印什么。
     outputChanges = !!nextPoint && nextPoint.output !== step.output;
@@ -176,7 +177,7 @@ export default function ExecutionDiagram({
               stroke="#9dccdf"
             />
             <text x="30" y="44" className="execution-svg-label">
-              {svgClip("当前观察 · " + step.scope, 12)}
+              {svgClip("当前观察 · " + scopeLabel, 10)}
             </text>
             <text x="395" y="44" className="execution-svg-label">
               {after?.event === "return" ? "作用域结束时" : after?.event === "exception" ? "异常发生时" : after ? "下次回到本作用域" : "后续状态"}

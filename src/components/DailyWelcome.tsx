@@ -1,283 +1,77 @@
-import { useState } from "react";
-import { ArrowRight, LoaderCircle, Send } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowRight, ChevronDown, LoaderCircle, Send } from "lucide-react";
 import type { DailyLearning } from "../hooks/useDailyPlan";
 import type { Missions } from "../hooks/useMissions";
 import type { Language } from "../../shared/curriculum";
-export default function DailyWelcome({
-  daily: d,
-  missions: m,
-  name,
-  onOpen,
-  onFlush,
-}: {
-  daily: DailyLearning;
-  missions: Missions;
-  name: string;
-  onOpen: (id: string) => void;
-  onFlush: () => Promise<unknown>;
+
+export default function DailyWelcome({ daily: d, missions: m, name, onOpen, onFlush }: {
+  daily: DailyLearning; missions: Missions; name: string;
+  onOpen: (id: string) => void; onFlush: () => Promise<unknown>;
 }) {
-  const [message, setMessage] = useState(""),
-    [starting, setStarting] = useState(false);
+  const [message, setMessage] = useState(""), [starting, setStarting] = useState(false);
+  const [expanded, setExpanded] = useState(!m.active);
+  useEffect(() => setExpanded(!m.active), [m.active?.id]);
+  const active = m.active;
+  const complete = !!d.plan && d.progress?.length === d.plan.steps.length && d.progress.every(p => p.state === "verified");
+  const nextIndex = d.progress?.findIndex(p => p.state !== "verified") ?? 0;
+  const nextStep = d.plan?.steps[Math.max(0, nextIndex)];
+  // 每日安排是可恢复的计划，当前任务才是继续学习的身份；两者不同不能继续复述旧计划为当前任务。
+  const outOfDate = !!active && !!d.plan && (active.goal.language !== d.plan.language || !d.plan.steps.some(s => s.lessonId === active.lessonId));
+  const pending = d.busy || m.busy || starting;
   const reply = async () => {
-    // 失败保留原意愿；请求成功时也不能清掉学生等待期间继续输入的新内容。
     const submitted = message.trim();
     if (!submitted || d.busy) return;
-    if (await d.prepare({ message: submitted }))
-      setMessage((current) => current.trim() === submitted ? "" : current);
+    if (await d.prepare({ message: submitted })) setMessage(current => current.trim() === submitted ? "" : current);
   };
   const start = async (index: number) => {
     setStarting(true);
     try {
       await onFlush();
-      if (d.progress?.[index]?.state === "verified" && d.plan?.steps[index]) {
-        onOpen(d.plan.steps[index].lessonId);
-        return;
-      }
+      if (d.progress?.[index]?.state === "verified" && d.plan?.steps[index]) return onOpen(d.plan.steps[index].lessonId);
       const id = await d.start(index);
-      if (id) {
-        await m.refresh();
-        onOpen(id);
-      }
-    } finally {
-      setStarting(false);
-    }
+      if (id) { await m.refresh(); onOpen(id); }
+    } finally { setStarting(false); }
   };
-  const hour = new Date().getHours(),
-    salutation =
-      hour < 6
-        ? "夜深了"
-        : hour < 12
-          ? "上午好"
-          : hour < 18
-            ? "下午好"
-            : "晚上好";
-  const hasActivity = !!d.progress?.some((p) => p.state !== "pending");
-  const complete =
-    !!d.plan &&
-    d.progress?.length === d.plan.steps.length &&
-    d.progress.every((p) => p.state === "verified");
-  const nextIndex = d.progress?.findIndex((p) => p.state !== "verified") ?? 0;
-  const resume = !!m.active && !m.progress?.canAdvance;
-  const next = async () => {
+  const refreshPlan = async () => {
     setStarting(true);
     try {
       await onFlush();
-      const value = await m.advance();
-      if (value) await d.prepare({ advance: true });
-    } finally {
-      setStarting(false);
-    }
+      await d.prepare(active ? { language: active.goal.language, message: "请结合我当前的学习任务和最新实际进度，重新安排今天接下来的一小步。" } : { message: "请结合最新学习记录，重新安排今天接下来的一小步。" });
+    } finally { setStarting(false); }
   };
-  const liveGreeting = complete
-    ? resume
-      ? "这份安排已完成。当前的新任务是“" +
-        m.active!.title +
-        "”，可以接着它继续。"
-      : "这份安排已经完成实际检查。你可以休息，也可以让我结合新记录安排下一小步。"
-    : hasActivity
-      ? "接着刚才的进度：" +
-        (d.plan?.steps[Math.max(0, nextIndex)]?.title ?? "当前任务") +
-        "，" +
-        (d.progress?.[Math.max(0, nextIndex)]?.text ?? "待开始") +
-        "。不必重头来过，可以继续刚才的代码。"
-      : null;
-  return (
-    <section className="daily-welcome" aria-label="AI今日学习安排">
-      <div className="daily-dialogue">
-        <div className="daily-teacher">
-          <img src="/brand/mark-gradient.png" alt="" />
-          <span>
-            AI老师{" "}
-            <small>
-              {d.plan
-                ? hasActivity
-                  ? "进度已更新 · 原安排已保存"
-                  : "今天的安排已保存"
-                : d.configured
-                  ? "正在为你准备"
-                  : "你的学习伙伴"}
-            </small>
-          </span>
-        </div>
-        <h2>
-          {salutation}，{name}
-        </h2>
-        {d.loading || (!d.plan && d.busy) ? (
-          <p className="daily-wait" role="status">
-            <LoaderCircle className="spin" size={17} />
-            正在结合学习记录安排今天的小目标…
-          </p>
-        ) : (
-          <>
-            <p className="daily-greeting">
-              {liveGreeting ??
-                d.plan?.greeting ??
-                "先从一个小问题开始。你可以继续上次的任务，或选择一门语言；连接AI后，我会结合你的记录安排学习。"}
-            </p>
-            {!hasActivity && d.plan?.question && (
-              <p className="daily-question">{d.plan.question}</p>
-            )}
-            {hasActivity && d.plan && (
-              <details className="daily-original">
-                <summary>查看最初的安排说明</summary>
-                <p>{d.plan.greeting}</p>
-              </details>
-            )}
-            {complete ? (
-              <button
-                className="button primary"
-                disabled={d.busy || m.busy || starting}
-                onClick={() =>
-                  resume ? onOpen(m.active!.lessonId) : void next()
-                }
-              >
-                {starting
-                  ? "正在安排…"
-                  : resume
-                    ? "继续当前任务"
-                    : "让AI安排下一小步"}
-                <ArrowRight size={15} />
-              </button>
-            ) : (
-              hasActivity && (
-                <button
-                  className="button primary"
-                  disabled={d.busy || starting}
-                  onClick={() =>
-                    resume
-                      ? onOpen(m.active!.lessonId)
-                      : void start(Math.max(0, nextIndex))
-                  }
-                >
-                  继续学习
-                  <ArrowRight size={15} />
-                </button>
-              )
-            )}
-          </>
-        )}
-        {d.plan && (
-          <>
-            <div className="daily-time" aria-label="今天的学习时间">
-              {[10, 20, 35].map((n) => (
-                <button
-                  key={n}
-                  disabled={d.busy || starting}
-                  aria-pressed={d.plan?.budget === n}
-                  onClick={() => void d.prepare({ minutes: n })}
-                >
-                  {n}分钟
-                </button>
-              ))}
-              <select
-                aria-label="今日学习语言"
-                value={d.plan.language}
-                disabled={d.busy || starting}
-                onChange={(e) =>
-                  void d.prepare({ language: e.target.value as Language })
-                }
-              >
-                <option value="c">C语言</option>
-                <option value="cpp">C++</option>
-                <option value="python">Python</option>
-              </select>
-            </div>
-            <form
-              className="daily-reply"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void reply();
-              }}
-            >
-              <input
-                aria-label="告诉AI今天的想法"
-                value={message}
-                maxLength={500}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="今天哪里没懂，或者想调整安排…"
-              />
-              <button
-                aria-label="回应今日AI老师"
-                disabled={d.busy || !message.trim()}
-              >
-                <Send size={16} />
-              </button>
-            </form>
-          </>
-        )}
-        {(d.error || m.error) && (
-          <p className="daily-error" role="alert">
-            {d.error || m.error}
-            <button disabled={d.busy} onClick={() => message.trim() ? void reply() : void d.prepare()}>
-              {message.trim() ? "重试这次调整" : "重新读取安排"}
-            </button>
-          </p>
-        )}
-      </div>
-      <div className="daily-agenda">
-        <div className="daily-agenda-title">
-          <b>今天从这里开始</b>
-          {d.plan && (
-            <small>
-              共{d.plan.steps.reduce((n, s) => n + s.minutes, 0)}分钟 ·
-              按实际进度推进
-            </small>
-          )}
-        </div>
-        {d.plan ? (
-          <ol>
-            {d.plan.steps.map((step, index) => (
-              <li key={step.lessonId}>
-                <div>
-                  <strong>{step.title}</strong>
-                  <small>
-                    {step.minutes}分钟 · {d.progress?.[index]?.text ?? "待开始"}
-                  </small>
-                  <p>{step.reason}</p>
-                </div>
-                <button
-                  disabled={
-                    d.busy ||
-                    starting ||
-                    !!(
-                      d.progress?.[index]?.state !== "verified" &&
-                      m.active &&
-                      m.active.goal.language === d.plan?.language &&
-                      m.active.lessonId !== step.lessonId &&
-                      !m.progress?.canAdvance &&
-                      step.kind !== "review"
-                    )
-                  }
-                  aria-label={
-                    (d.progress?.[index]?.state === "verified" ? "回看" : "开始") +
-                    "今日安排：" + step.title
-                  }
-                  onClick={() => void start(index)}
-                >
-                  {d.progress?.[index]?.state === "verified"
-                    ? "回看"
-                    : d.progress?.[index]?.state === "coding" ||
-                        d.progress?.[index]?.state === "opened"
-                      ? "继续"
-                      : index === nextIndex ? "开始" : "之后"}
-                  <ArrowRight size={15} />
-                </button>
-              </li>
-            ))}
-          </ol>
-        ) : (
-          <p>
-            已有课程、草稿和当前任务都保留在下方。
-            {d.configured === false ? "可在AI连接设置中连接老师。" : ""}
-          </p>
-        )}
-        {d.busy && d.plan && (
-          <p role="status" className="daily-wait">
-            <LoaderCircle size={14} className="spin" />
-            正在调整，原计划仍然保留…
-          </p>
-        )}
-      </div>
-    </section>
-  );
+  const next = async () => {
+    setStarting(true);
+    try { await onFlush(); const value = await m.advance(); if (value) await d.prepare({ advance: true }); }
+    finally { setStarting(false); }
+  };
+  const greeting = active
+    ? m.progress?.canAdvance ? "当前任务已完成本次验证。接下来可以继续，也可以先回看自己的过程。" : "当前任务已为你保留。先把这一小步弄明白，再决定接下来学什么。"
+    : d.plan?.greeting ?? (d.configured === false ? "先做一个小实验，或选择课程开始。连接AI后，可以根据你的学习记录安排下一步。" : "正在结合你的学习记录，准备今天的小目标。");
+  return <section className={"daily-welcome modern-daily " + (active ? "has-current-task" : "")} aria-label="AI今日学习安排">
+    <div className="modern-daily-summary">
+      <div><span className="modern-daily-label">今日安排</span><h2>{active ? "先接着当前的问题。" : name + "，从一小步开始。"}</h2>
+        <p>{greeting}</p>{!active && d.plan?.question && <p className="daily-question">{d.plan.question}</p>}</div>
+      <button className="modern-daily-toggle" onClick={() => setExpanded(!expanded)} aria-expanded={expanded} aria-controls="daily-plan-details">{expanded ? "收起安排" : "查看与调整"}<ChevronDown size={16}/></button>
+    </div>
+    {outOfDate && <div className="modern-plan-notice"><span>已切换当前任务，今天保存的安排还没有同步。</span><button disabled={pending} onClick={() => void refreshPlan()}>{starting ? "正在更新…" : "结合当前任务重新安排"}</button></div>}
+    {(d.loading || (!d.plan && d.busy)) && <p className="daily-wait" role="status"><LoaderCircle className="spin" size={16}/>正在准备今日安排…</p>}
+    {!active && d.plan && !d.loading && <div className="modern-daily-next">
+      <div><small>{complete ? "今天这份安排已检查完成" : "下一步"}</small><b>{complete ? "把刚刚的理解，再向前走一步。" : nextStep?.title}</b><span>{complete ? "已有的学习过程会继续保留。" : nextStep?.reason}</span></div>
+      <button className="button primary" disabled={pending} onClick={() => complete ? void next() : void start(Math.max(0,nextIndex))}>{starting ? "正在准备…" : complete ? "安排下一小步" : "开始这个任务"}<ArrowRight size={16}/></button>
+    </div>}
+    <div id="daily-plan-details" hidden={!expanded} className="modern-daily-details">
+      {d.plan && <>
+        {active && <p className="daily-original-greeting">{outOfDate ? "以下是切换任务前保存的安排。" : "原安排说明：" + d.plan.greeting}</p>}
+        <div className="daily-time" aria-label="今天的学习时间"><span>今天学多久</span>{[10,20,35].map(n=><button key={n} disabled={pending} aria-pressed={d.plan?.budget===n} onClick={()=>void d.prepare({minutes:n})}>{n}分钟</button>)}<select aria-label="今日学习语言" value={d.plan.language} disabled={pending} onChange={e=>void d.prepare({language:e.target.value as Language})}><option value="c">C语言</option><option value="cpp">C++</option><option value="python">Python</option></select></div>
+        <form className="daily-reply" onSubmit={e=>{e.preventDefault();void reply();}}><input aria-label="告诉AI今天的想法" value={message} maxLength={500} onChange={e=>setMessage(e.target.value)} placeholder="今天哪里没懂，或者想调整安排…"/><button aria-label="回应今日AI老师" disabled={d.busy||!message.trim()}><Send size={17}/></button></form>
+        <ol className="modern-daily-agenda">{d.plan.steps.map((step,index)=><li key={step.lessonId}>
+          <span className={"modern-plan-step "+(d.progress?.[index]?.state==="verified"?"verified":"")}>{index+1}</span><div><strong>{step.title}</strong><small>{step.minutes}分钟 · {d.progress?.[index]?.text??"待开始"}</small><p>{step.reason}</p></div>
+          <button disabled={pending||!!(d.progress?.[index]?.state!=="verified"&&active&&active.goal.language===d.plan?.language&&active.lessonId!==step.lessonId&&!m.progress?.canAdvance&&step.kind!=="review")} aria-label={(d.progress?.[index]?.state==="verified"?"回看":"开始")+"今日安排："+step.title} onClick={()=>void start(index)}>{d.progress?.[index]?.state==="verified"?"回看":d.progress?.[index]?.state==="coding"||d.progress?.[index]?.state==="opened"?"继续":"开始"}<ArrowRight size={14}/></button>
+        </li>)}</ol>
+      </>}
+      {!d.plan&&!d.loading&&!d.busy&&<p className="modern-daily-empty">{d.configured===false?"连接AI后会生成个性化安排。已有课程和真实运行随时可以使用。":"暂时还没有今日安排。"}</p>}
+      {d.busy&&d.plan&&<p role="status" className="daily-wait"><LoaderCircle size={14} className="spin"/>正在调整，原计划仍然保留…</p>}
+    </div>
+    {d.error&&<p className="daily-error" role="alert">{d.error}<button disabled={pending} onClick={()=>message.trim()?void reply():void d.prepare()}>{message.trim()?"重试这次调整":"重新读取安排"}</button></p>}
+  </section>;
 }

@@ -102,7 +102,8 @@ export function useTeachingFlow({
     currentTask: LearningTask | null = stale ? null : task,
     force = false,
   ) {
-    if (!mounted.current || !userId || (!enabled && !force)) return false;
+    // 未连接AI是正常可用状态；自动事件先保留真实记录，避免每次运行都弹出连接错误。
+    if (!mounted.current || !userId || ((!enabled || !configured) && !force)) return false;
     controller.current?.abort();
     const c = new AbortController();
     controller.current = c;

@@ -1,498 +1,286 @@
 import { useEffect, useRef, useState } from "react";
+import { ArrowDown, ArrowRight, ArrowUpRight, ChevronDown, Expand, Menu, Pause, Play, X } from "lucide-react";
 import BrandIdentity from "./BrandIdentity";
-import HomeVisualization from "./HomeVisualization";
-import {
-  ArrowRight,
-  ArrowUpRight,
-  BookOpen,
-  Check,
-  ChevronDown,
-  Code2,
-  Expand,
-  History,
-  LocateFixed,
-  Menu,
-  Pause,
-  Play,
-  RotateCcw,
-  X,
-} from "lucide-react";
-import { languages, lessons } from "../../shared/curriculum";
+import DiscoveryExperience from "./DiscoveryExperience";
+import BubbleSortShowcase from "./BubbleSortShowcase";
+import { languages, lessons, type Language } from "../../shared/curriculum";
 
 const screens = [
-  {
-    title: "我的学习",
-    image: "task-current.jpg",
-    icon: BookOpen,
-    heading: "从适合自己的任务开始",
-    body: "写下目标，完成起点预测。AI结合已有记录，选择一项具体练习，并说明选择的依据。",
-  },
-  {
-    title: "课程实践",
-    image: "editor.jpg",
-    icon: Code2,
-    heading: "写代码，也看懂它怎样运行",
-    body: "AI在左侧主动讲解、提问和分析。代码与执行观察保持在一起，随时运行，核对理解。",
-  },
-  {
-    title: "课程可视化",
-    image: "observe.jpg",
-    icon: LocateFixed,
-    heading: "看见数据怎样流动",
-    body: "循环边界、切片选区、指针访问和实例状态，都有对应的课程图形。代码与动画联动，可暂停、拖动和点击查看。",
-  },
-  {
-    title: "学习记录",
-    image: "evidence-current.jpg",
-    icon: History,
-    heading: "每一次修改，都能回头看",
-    body: "保存预测、运行、修改与复测。独立答对和参考解析后的订正分开记录，继续安排下一步。",
-  },
+  { title: "学习安排", image: "task-current.jpg", heading: "先找到，今天的下一步。", body: "从当前任务和真实学习记录出发，把目标拆成一小步。中断之后，也能接着继续。" },
+  { title: "动手实践", image: "editor.jpg", heading: "把想法，写成自己的代码。", body: "编辑、运行、查看输出。老师的提问与代码放在同一处，带着问题亲手尝试。" },
+  { title: "执行观察", image: "observe.jpg", heading: "停在变化发生的那一行。", body: "查看受支持程序的变量、函数调用、指针和对象状态，把代码与执行轨迹对应起来。" },
+  { title: "学习过程", image: "evidence-current.jpg", heading: "留下的不只是一个答案。", body: "回看最初判断、运行与修改。独立作答、辅助通过和订正分别记录，下一步有据可循。" },
 ];
 const faqs = [
-  [
-    "没有编程基础，可以从这里开始吗？",
-    "可以。先选C、C++或Python，说明自己的目标，再做一道不计成绩的起点预测。AI会从现有课程中选择合适的任务，你也可以自主选课。",
-  ],
-  [
-    "不在聊天框提问，AI也会帮助我吗？",
-    "会。打开课程时，AI先介绍本节基础，再围绕当前代码提问；运行、修改和完成检验后也会主动分析。可以直接运行，不必先填预测表，遇到疑问随时在同一个对话框里追问。",
-  ],
-  [
-    "可视化是自己代码的真实执行吗？",
-    "受支持的C、C++和Python代码可以查看实际变量、调用和对象关系。课程示例另行标注；C/C++回放来自同代码同输入的隔离调试运行，并核对输出。超出采集范围时保留普通运行，不能把固定示例当成自己的执行。",
-  ],
-  [
-    "下次打开，能接着上次的练习吗？",
-    "可以。登录后，当前任务、代码草稿、标准输入、预测、运行和作答保存在自己的账户中。再次登录后可以继续，也可以查看之前的练习过程。",
-  ],
+  ["完全没有编程基础，也可以开始吗？", "可以。点击“零基础？从第一课开始”，从输出、变量与条件逐步学习。学过for循环和数组或列表，再进入冒泡排序综合实践；首页也可以先观察动画，不需要安装开发工具。"],
+  ["图里的变化来自我的代码吗？", "首页流动光影是品牌视觉；小实验和课程会区分示例与真实运行。受支持的C、C++和Python程序可以查看执行状态；C/C++使用同代码、同输入的隔离调试回放，并核对普通运行输出。超出采集范围时，普通运行结果仍然保留。"],
+  ["AI会直接帮我把答案写完吗？", "老师结合你的判断和实际结果解释、追问或引导观察。你可以自己修改和验证，也可以主动请求帮助。看过参考或接受帮助后的作答会保留相应标记。"],
+  ["需要注册才能试用吗？", "首页排序演示无需登录。下方的对照实验也能直接体验，登录后可保存那次实验记录；课程中的代码草稿、真实运行和作答记录会分别保存。"],
 ];
-export default function LandingPage({
-  authenticated,
-  onEnter,
-}: {
-  authenticated: boolean;
-  onEnter: () => void;
+const clamp = (value: number) => Math.min(1, Math.max(0, value));
+
+export default function LandingPage({ authenticated, accountLoading = false, startingLesson = false, userId, onEnter, onExploreContinue, onStartLesson }: {
+  authenticated: boolean; accountLoading?: boolean; startingLesson?: boolean; userId?: string; onEnter: () => void; onExploreContinue?: () => void; onStartLesson?: (lessonId: string) => void;
 }) {
-  const [menu, setMenu] = useState(false),
-    [selected, setSelected] = useState(0),
-    [lightbox, setLightbox] = useState(false);
-  const root = useRef<HTMLDivElement>(null),
-    dialog = useRef<HTMLDivElement>(null);
-  const screen = screens[selected],
-    action = authenticated ? "进入学习空间" : "开始学习";
+  const [menu, setMenu] = useState(false);
+  const [homeLanguage, setHomeLanguage] = useState<Language>("python");
+  const [selected, setSelected] = useState(0);
+  const [manualStory, setManualStory] = useState(false);
+  const [faq, setFaq] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [systemReduced, setSystemReduced] = useState(() => typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const [lightbox, setLightbox] = useState<number | null>(null);
+  const [fullSize, setFullSize] = useState(false);
+  const page = useRef<HTMLDivElement>(null);
+  const dialog = useRef<HTMLDivElement>(null);
+  const unfold = useRef<HTMLElement>(null);
+  const unfoldImage = useRef<HTMLButtonElement>(null);
+  const story = useRef<HTMLElement>(null);
+  const manualLock = useRef(false);
+  const motionOff = paused || systemReduced;
+  const screen = screens[selected];
+  const preview = lightbox === null ? null : screens[lightbox];
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) =>
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("is-seen");
-            observer.unobserve(entry.target);
-          }
-        }),
-      { threshold: 0.1 },
-    );
-    root.current
-      ?.querySelectorAll(".home-reveal")
-      .forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
+    const media = matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setSystemReduced(media.matches);
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
   }, []);
+
   useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null;
-    const previousOverflow = document.body.style.overflow;
-    if (lightbox) document.body.style.overflow = "hidden";
-    if (lightbox)
-      dialog.current?.querySelector<HTMLButtonElement>("button")?.focus();
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setMenu(false);
-        setLightbox(false);
-      }
-      if (lightbox && e.key === "Tab") {
-        const controls = [
-          ...(dialog.current?.querySelectorAll<HTMLElement>("button,a") ?? []),
-        ];
-        if (e.shiftKey && document.activeElement === controls[0]) {
-          e.preventDefault();
-          controls.at(-1)?.focus();
-        } else if (!e.shiftKey && document.activeElement === controls.at(-1)) {
-          e.preventDefault();
-          controls[0]?.focus();
-        }
+    if (!page.current || motionOff || typeof IntersectionObserver === "undefined") return;
+    const root = page.current;
+    root.classList.add("motion-ready");
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add("is-visible");
+        observer.unobserve(entry.target);
+      });
+    }, { threshold: 0.12 });
+    root.querySelectorAll("[data-reveal]").forEach(element => observer.observe(element));
+    return () => { observer.disconnect(); root.classList.remove("motion-ready"); };
+  }, [motionOff]);
+
+  useEffect(() => {
+    const section = unfold.current;
+    const picture = unfoldImage.current;
+    const journey = story.current;
+    if (!section || !picture || !journey || typeof IntersectionObserver === "undefined") return;
+    if (motionOff) { picture.style.transform = "none"; return; }
+    const wide = matchMedia("(min-width: 901px)");
+    let visible = false;
+    let frame = 0;
+    // 仅在相关章节可见且滚动发生时请求一帧；没有永久运行的页面动画循环。
+    const render = () => {
+      frame = 0;
+      const height = window.innerHeight;
+      const bounds = section.getBoundingClientRect();
+      const progress = clamp((height - bounds.top) / (height * 0.95));
+      const angle = wide.matches ? 10 * (1 - progress) : 0;
+      const scale = 0.88 + progress * 0.12;
+      picture.style.transform = "perspective(1600px) rotateX(" + angle + "deg) scale(" + scale + ")";
+      if (wide.matches && !manualLock.current) {
+        const position = journey.getBoundingClientRect();
+        const travel = Math.max(1, position.height - height);
+        const step = Math.min(screens.length - 1, Math.floor(clamp(-position.top / travel) * screens.length));
+        setSelected(current => current === step ? current : step);
       }
     };
-    window.addEventListener("keydown", handler);
+    const request = () => { if (visible && !frame) frame = requestAnimationFrame(render); };
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => active.set(entry.target, entry.isIntersecting));
+      visible = [...active.values()].some(Boolean);
+      request();
+    }, { rootMargin: "100px" });
+    const active = new Map<Element, boolean>();
+    observer.observe(section);
+    observer.observe(journey);
+    window.addEventListener("scroll", request, { passive: true });
+    window.addEventListener("resize", request);
+    wide.addEventListener("change", request);
     return () => {
-      window.removeEventListener("keydown", handler);
-      if (lightbox) {
-        document.body.style.overflow = previousOverflow;
-        previous?.focus();
-      }
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", request);
+      window.removeEventListener("resize", request);
+      wide.removeEventListener("change", request);
+      picture.style.transform = "none";
     };
+  }, [motionOff]);
+
+  useEffect(() => {
+    if (lightbox === null) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    dialog.current?.querySelector<HTMLButtonElement>("button")?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setLightbox(null);
+      if (event.key !== "Tab") return;
+      const controls = [...dialog.current?.querySelectorAll<HTMLElement>("button,a") ?? []];
+      if (event.shiftKey && document.activeElement === controls[0]) { event.preventDefault(); controls.at(-1)?.focus(); }
+      else if (!event.shiftKey && document.activeElement === controls.at(-1)) { event.preventDefault(); controls[0]?.focus(); }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => { document.body.style.overflow = overflow; document.removeEventListener("keydown", onKey); previous?.focus(); };
   }, [lightbox]);
 
-  return (
-    <div className="landing-page handbook-home" id="home" ref={root}>
-      <header className="home-nav">
-        <a
-          className="home-brand"
-          href="#home"
-          aria-label="代码灵 CodeClario 网站主页"
-        >
-          <BrandIdentity />
-        </a>
+  useEffect(() => {
+    const close = (event: KeyboardEvent) => { if (event.key === "Escape") setMenu(false); };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, []);
+
+  const chooseScreen = (index: number) => {
+    // 手动选择优先于滚动编排，直到用户明确恢复，避免刚点开的图片立即被滚动监听改回。
+    manualLock.current = true;
+    setManualStory(true);
+    setSelected(index);
+  };
+  const openPreview = (index: number) => { setFullSize(false); setLightbox(index); };
+  const followScroll = () => {
+    manualLock.current = false;
+    setManualStory(false);
+    window.dispatchEvent(new Event("scroll"));
+  };
+  const enterLabel = accountLoading ? "读取账户…" : authenticated ? "我的学习" : "登录";
+
+  return <div ref={page} className={"landing-page cinematic-landing" + (motionOff ? " motion-off" : "")} id="home">
+    <div className="cine-topbar">
+      <header className="cine-nav cine-wide">
+        <a className="cine-brand" href="#home" aria-label="代码灵 CodeClario 网站主页"><BrandIdentity /></a>
         <nav aria-label="网站导航" className={menu ? "is-open" : ""}>
-          <a href="#home/preview" onClick={() => setMenu(false)}>
-            平台预览
-          </a>
-          <a href="#home/workflow" onClick={() => setMenu(false)}>
-            学习方式
-          </a>
-          <a href="#home/courses" onClick={() => setMenu(false)}>
-            课程范围
-          </a>
-          <a href="#home/faq" onClick={() => setMenu(false)}>
-            常见问题
-          </a>
+          <a href="#home/preview" onClick={() => setMenu(false)}>学习方式</a>
+          <a href="#home/try" onClick={() => setMenu(false)}>亲手体验</a>
+          <a href="#home/courses" onClick={() => setMenu(false)}>课程</a>
+          <a href="#home/faq" onClick={() => setMenu(false)}>常见问题</a>
         </nav>
-        <div className="home-nav-actions">
-          <button className="home-signin" onClick={onEnter}>
-            {authenticated ? "学习空间" : "登录"}
-            <ArrowUpRight size={16} />
-          </button>
-          <button
-            className="home-menu"
-            aria-label={menu ? "关闭网站导航" : "打开网站导航"}
-            aria-expanded={menu}
-            onClick={() => setMenu(!menu)}
-          >
-            {menu ? <X /> : <Menu />}
-          </button>
+        <div className="cine-nav-actions">
+          <button className="cine-enter" onClick={onEnter} disabled={accountLoading}>{enterLabel}<ArrowUpRight size={15}/></button>
+          <button className="cine-menu" aria-label={menu ? "关闭网站导航" : "打开网站导航"} aria-expanded={menu} onClick={() => setMenu(!menu)}>{menu ? <X size={21}/> : <Menu size={21}/>}</button>
         </div>
       </header>
-      <main>
-        <section className="home-hero home-wrap" aria-label="产品介绍">
-          <div className="home-hero-copy">
-            <h1>
-              <span>让代码看得见，</span>
-              <span>让学习有方向。</span>
-            </h1>
-            <p>
-              AI先解释基础，再带你读代码、看执行。运行后主动分析，用新的小例子检验理解。
-            </p>
-            <div className="home-hero-actions">
-              <button className="home-button" onClick={onEnter}>
-                {action}
-                <ArrowRight size={18} />
-              </button>
-              <a className="home-text-link" href="#home/preview">
-                看看怎样学习
-                <ArrowRight size={16} />
-              </a>
+    </div>
+    <main>
+    <div className="cine-opening">
+      <section className="cine-hero" aria-label="代码灵产品介绍">
+        <div className="cine-hero-content">
+        <div className="cine-hero-copy">
+          <p className="cine-learning-question">AI时代，如何高效学习编程，提升代码能力？</p>
+          <h1 className="cine-hero-enter">看见执行，<br/>学懂代码。</h1>
+          <div className="cine-hero-support">
+            <p className="cine-hero-description cine-hero-enter">从一段冒泡排序开始，看懂循环与数组怎样配合。<br/>跟着AI的引导，动手修改，再验证自己的理解。</p>
+            <div className="cine-actions cine-hero-enter">
+              <button className="cine-button cine-button-light" onClick={() => onStartLesson ? onStartLesson(`${homeLanguage}-19`) : onEnter()} disabled={accountLoading || startingLesson}>{startingLesson ? "正在进入课程…" : "从这一课开始"}<ArrowRight size={18}/></button>
+              <a className="cine-text-action" href="#home/try">体验AI引导<ArrowUpRight size={17}/></a>
             </div>
-            <div className="home-hero-facts">
-              <span>
-                <Check size={15} /> C · C++ · Python
-              </span>
-              <span>
-                <Check size={15} /> {lessons.length}节基础课程
-              </span>
-              <span>
-                <Check size={15} /> 学习进度随账户保存
-              </span>
-            </div>
-          </div>
-          <HomeVisualization />
-        </section>
-        <section
-          className="home-product home-wrap home-reveal"
-          id="home/preview"
-        >
-          <div className="home-section-heading">
-            <div>
-              <h2>学习的每一步，都有着落</h2>
-              <p>从选任务到回看过程，在同一个学习空间中完成。</p>
-            </div>
-            <button className="home-text-link" onClick={onEnter}>
-              进入学习空间
-              <ArrowRight size={16} />
-            </button>
-          </div>
-          <div
-            className="product-tabs"
-            role="tablist"
-            aria-label="平台页面预览"
-            onKeyDown={(event) => {
-              if (
-                !["ArrowRight", "ArrowLeft", "Home", "End"].includes(event.key)
-              )
-                return;
-              event.preventDefault();
-              const next =
-                event.key === "Home"
-                  ? 0
-                  : event.key === "End"
-                    ? screens.length - 1
-                    : (selected +
-                        (event.key === "ArrowRight" ? 1 : -1) +
-                        screens.length) %
-                      screens.length;
-              setSelected(next);
-              document.getElementById(`preview-tab-${next}`)?.focus();
-            }}
-          >
-            {screens.map((item, i) => (
-              <button
-                role="tab"
-                id={`preview-tab-${i}`}
-                aria-selected={selected === i}
-                tabIndex={selected === i ? 0 : -1}
-                aria-controls="product-preview-panel"
-                key={item.image}
-                onClick={() => setSelected(i)}
-              >
-                <item.icon size={18} />
-                {item.title}
-              </button>
-            ))}
-          </div>
-          <div className="product-description">
-            <h3>{screen.heading}</h3>
-            <p>{screen.body}</p>
-          </div>
-          <figure
-            className="product-frame"
-            id="product-preview-panel"
-            role="tabpanel"
-            aria-labelledby={`preview-tab-${selected}`}
-          >
-            <div className="product-frame-bar">
-              <span>
-                <span className="home-small-mark" />
-                {screen.title} · CodeClario
-              </span>
-              <button onClick={() => setLightbox(true)}>
-                <Expand size={15} />
-                放大查看
-              </button>
-            </div>
-            <button
-              className="product-image-button"
-              aria-label={`放大${screen.title}完整截图`}
-              onClick={() => setLightbox(true)}
-            >
-              <img
-                src={`/product/${screen.image}`}
-                alt={`代码灵${screen.title}完整界面截图`}
-                width="1440"
-                height="900"
-                key={screen.image}
-              />
-            </button>
-            <figcaption>实际产品界面 · 图片完整展示，可点击放大</figcaption>
-          </figure>
-          <div className="product-thumbnails">
-            {screens.map((item, i) => (
-              <button
-                className={selected === i ? "selected" : ""}
-                onClick={() => setSelected(i)}
-                aria-label={`预览${item.title}`}
-                key={item.image}
-              >
-                <img
-                  src={`/product/${item.image}`}
-                  alt={`${item.title}完整缩略图`}
-                  width="1440"
-                  height="900"
-                  loading="lazy"
-                />
-                <span>
-                  {item.title}
-                  <ArrowUpRight size={14} />
-                </span>
-              </button>
-            ))}
-          </div>
-        </section>
-        <section className="home-teaching" id="home/workflow">
-          <div className="home-wrap teaching-layout">
-            <div className="teaching-intro home-reveal">
-              <h2>
-                AI的工作，
-                <br />
-                不止是回答问题
-              </h2>
-              <p>
-                它参与任务选择，也在你预测、运行和修改时主动分析。具体的引导，出现在正在解决的问题旁边。
-              </p>
-              <div className="teaching-example">
-                <LocateFixed size={22} />
-                <blockquote>
-                  “看看这次循环实际处理了哪些数字，和你原来的预期一样吗？”
-                </blockquote>
-                <span>引导方式示例</span>
-              </div>
-            </div>
-            <div className="teaching-steps">
-              {[
-                [
-                  "从目标选任务",
-                  "结合学习目标、起点作答和历史记录，选择课程任务，说明为什么现在练这一项。",
-                ],
-                [
-                  "从运行找问题",
-                  "把预测与真实结果对照，引用本次代码和执行记录，引导你观察关键位置。",
-                ],
-                [
-                  "由你修改，再独立检验",
-                  "代码由你来改。编码通过后，使用审校新题检验理解，再安排复习或下一项任务。",
-                ],
-              ].map(([title, body], i) => (
-                <article className="home-reveal" key={title}>
-                  <span className="teaching-step-mark">
-                    {i === 0 ? (
-                      <BookOpen />
-                    ) : i === 1 ? (
-                      <LocateFixed />
-                    ) : (
-                      <Check />
-                    )}
-                  </span>
-                  <div>
-                    <h3>{title}</h3>
-                    <p>{body}</p>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-        <section
-          className="home-courses home-wrap home-reveal"
-          id="home/courses"
-        >
-          <div className="home-section-heading">
-            <div>
-              <h2>选一门语言，从基础出发</h2>
-              <p>
-                三种语言各18节课程。讲解、概念演示、理解检查与编码练习相互配合。
-              </p>
-            </div>
-          </div>
-          <div className="home-language-list">
-            {languages.map((l) => (
-              <article key={l.id}>
-                <span className="language-name">
-                  {l.id === "c" ? "C" : l.id === "cpp" ? "C++" : "Py"}
-                </span>
-                <div>
-                  <h3>{l.name}</h3>
-                  <p>{l.description}</p>
-                  <span>
-                    {
-                      lessons.filter((lesson) => lesson.language === l.id)
-                        .length
-                    }
-                    节基础课程
-                  </span>
-                </div>
-                <button aria-label={`登录学习${l.name}`} onClick={onEnter}>
-                  <ArrowRight size={20} />
-                </button>
-              </article>
-            ))}
-          </div>
-        </section>
-        <section className="home-faq home-wrap home-reveal" id="home/faq">
-          <div>
-            <h2>
-              开始前，
-              <br />
-              你可能想知道
-            </h2>
-            <p>关于课程、AI和学习记录。</p>
-          </div>
-          <div>
-            {faqs.map(([q, a], i) => (
-              <details key={q} open={i === 0 ? true : undefined}>
-                <summary>
-                  {q}
-                  <ChevronDown size={18} />
-                </summary>
-                <p>{a}</p>
-              </details>
-            ))}
-          </div>
-        </section>
-        <section className="home-wrap">
-          <div className="home-closing home-reveal">
-            <div>
-              <h2>从一段代码，开始弄懂</h2>
-              <p>把预期写下来，让每次运行和修改都有依据。</p>
-            </div>
-            <button className="home-button" onClick={onEnter}>
-              {action}
-              <ArrowRight size={18} />
-            </button>
-          </div>
-        </section>
-      </main>
-      <footer className="home-footer home-wrap">
-        <a
-          className="home-brand"
-          href="#home"
-          aria-label="代码灵 CodeClario 返回顶部"
-        >
-          <BrandIdentity />
-        </a>
-        <p>AI驱动的可视化编程学习平台</p>
-        <nav aria-label="页脚导航">
-          <a href="#home/courses">课程范围</a>
-          <a href="#home/faq">常见问题</a>
-          <button onClick={onEnter}>
-            {authenticated ? "我的学习" : "登录学习"}
-          </button>
-        </nav>
-        <span>C17 · C++17 · Python 3</span>
-      </footer>
-      {lightbox && (
-        <div
-          className="product-lightbox"
-          data-ui
-          onClick={() => setLightbox(false)}
-        >
-          <div
-            ref={dialog}
-            role="dialog"
-            aria-modal="true"
-            aria-label={`${screen.title}完整截图`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <header>
-              <b>{screen.title} · 完整界面</b>
-              <a
-                href={`/product/${screen.image}`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                打开原图
-                <ArrowUpRight size={15} />
-              </a>
-              <button
-                aria-label="关闭截图预览"
-                onClick={() => setLightbox(false)}
-              >
-                <X size={22} />
-              </button>
-            </header>
-            <img
-              src={`/product/${screen.image}`}
-              alt={`${screen.title}完整原始截图`}
-            />
+            <p className="cine-course-note">适合已学过for循环与数组的你<br/><button onClick={() => onStartLesson ? onStartLesson(`${homeLanguage}-1`) : onEnter()} disabled={accountLoading || startingLesson}>零基础？从第一课开始<ArrowUpRight size={12}/></button></p>
           </div>
         </div>
-      )}
+        </div>
+        <div className="cine-hero-stage"><BubbleSortShowcase language={homeLanguage} onLanguageChange={setHomeLanguage} paused={motionOff}/></div>
+      </section>
+
+      <div className="cine-opening-bottom cine-wide">
+        <a className="cine-scroll" href="#home/try"><ArrowDown size={17}/><span>往下，亲手验证一次</span></a>
+        <p>C / C++ / Python<span>·</span>{lessons.length}节基础课程</p>
+        <button className="cine-motion-control" aria-pressed={motionOff} disabled={systemReduced} onClick={() => setPaused(!paused)} title={systemReduced ? "系统已启用减少动态效果" : undefined}>
+          {motionOff ? <Play size={14}/> : <Pause size={14}/>}
+          {systemReduced ? "已减少动态" : paused ? "恢复页面动效" : "暂停页面动效"}
+        </button>
+      </div>
     </div>
-  );
+
+    <div className="cine-main-content">
+      <section className="cine-try" id="home/try" aria-labelledby="try-title">
+        <div className="cine-try-intro cine-wide"><div><h2 id="try-title" data-reveal>别急着相信解释。<br/>亲手验证一次。</h2></div><p data-reveal>先说出你的预期，再让程序运行。<br/>在差异出现的地方，找到真正的问题。</p></div>
+        <div className="cine-try-experience cine-wide">
+          {/* 始终挂载同一个实验实例；展示动画和图片切换不重建用户尚未提交的判断。 */}
+          <DiscoveryExperience compact userId={userId} disabled={accountLoading} onContinue={onExploreContinue??onEnter}/>
+        </div>
+        <div className="cine-try-method cine-wide"><p data-reveal><b>先表达</b><span>说出预期，也可以承认不确定。</span></p><p data-reveal><b>再比较</b><span>用真实结果，核对自己的判断。</span></p><p data-reveal><b>换个例子</b><span>把新的理解，再独立用一次。</span></p></div>
+      </section>
+
+      <section ref={unfold} className="cine-unfold" id="home/preview" aria-labelledby="unfold-title">
+        <div className="cine-section-head cine-wide">
+
+          <div className="cine-head-row">
+            <h2 id="unfold-title" data-reveal>从一行代码，<br/>看到每次变化。</h2>
+            <p data-reveal>程序不是一张答案纸。<br/>它有正在变化的数值、关系和执行顺序。<br/>把过程展开，理解才有了落点。</p>
+          </div>
+        </div>
+        <div className="cine-unfold-media cine-wide">
+          <button ref={unfoldImage} className="cine-unfold-image" onClick={() => openPreview(2)} aria-label="放大执行观察界面示例">
+            <img src="/product/observe.jpg" alt="代码灵真实产品界面：代码与执行观察" loading="lazy" width="1440" height="900"/>
+            <span><Expand size={16}/>查看完整界面</span>
+          </button>
+        </div>
+        <div className="cine-image-note cine-wide"><span>代码与执行观察 · 真实产品界面示例</span><p>支持的程序可查看真实回放；课程示例与真实运行分别标注。</p></div>
+      </section>
+
+      <section ref={story} className="cine-journey" aria-labelledby="journey-title">
+        <div className="cine-journey-stage cine-wide">
+          <div className="cine-journey-heading"><h2 id="journey-title">从好奇，到自己弄懂。</h2></div>
+          <div className="cine-journey-layout">
+            <div className="cine-journey-copy">
+              <div className="cine-journey-tabs" role="tablist" aria-label="查看四个学习环节">
+                {screens.map((item,index) => <button key={item.image} id={"cine-tab-"+index} role="tab" tabIndex={selected===index?0:-1} aria-selected={selected===index} aria-controls="cine-journey-panel" onClick={()=>chooseScreen(index)} onKeyDown={event=>{
+                  let next = index;
+                  if(event.key==="ArrowRight"||event.key==="ArrowDown")next=(index+1)%screens.length;
+                  else if(event.key==="ArrowLeft"||event.key==="ArrowUp")next=(index+screens.length-1)%screens.length;
+                  else if(event.key==="Home")next=0;
+                  else if(event.key==="End")next=screens.length-1;
+                  else return;
+                  event.preventDefault();chooseScreen(next);document.getElementById("cine-tab-"+next)?.focus();
+                }}><span>{item.title}</span><ArrowRight size={16}/></button>)}
+              </div>
+              <div className="cine-journey-description" key={screen.image}><h3>{screen.heading}</h3><p>{screen.body}</p></div>
+              <div className="cine-journey-controls"><button onClick={()=>openPreview(selected)}><Expand size={15}/>放大界面</button>{manualStory&&<button className="cine-follow" onClick={followScroll}>跟随滚动<ArrowDown size={14}/></button>}</div>
+            </div>
+            <div className="cine-journey-media" id="cine-journey-panel" role="tabpanel" aria-labelledby={"cine-tab-"+selected}>
+              <button className="cine-journey-image" onClick={()=>openPreview(selected)} aria-label={"放大"+screen.title+"界面示例"}>
+                {screens.map((item,index)=><img key={item.image} src={"/product/"+item.image} className={index===selected?"is-current":""} alt={index===selected?"代码灵"+item.title+"真实界面示例":""} aria-hidden={index!==selected} loading="lazy" width="1440" height="900"/>)}
+                <span><Expand size={16}/></span>
+              </button>
+              <p className="cine-journey-caption">{screen.title} · 真实产品界面示例 <span>{selected+1} / {screens.length}</span></p>
+            </div>
+          </div>
+          <div className="cine-thumbnails" aria-label="全部产品界面">
+            {screens.map((item,index)=><button key={item.image} aria-label={"选择"+item.title+"界面"} aria-pressed={selected===index} onClick={()=>chooseScreen(index)}><img src={"/product/"+item.image} alt={item.title+"缩略图"} loading="lazy"/><span>{item.title}</span></button>)}
+          </div>
+        </div>
+      </section>
+
+
+
+      <section className="cine-courses cine-wide" id="home/courses" aria-labelledby="courses-title">
+        <div className="cine-head-row"><div><h2 id="courses-title" data-reveal>从第一行，<br/>走到自己的程序。</h2></div><p data-reveal>{lessons.length}节基础课程，沿着概念逐步展开。<br/>你可以跟着安排，也可以自主选课。</p></div>
+        <div className="cine-language-list">{languages.map(language=><button key={language.id} onClick={onEnter} disabled={accountLoading} data-reveal aria-label={"学习"+language.name}>
+          <span className="cine-language-symbol">{language.id==="python"?"Py":language.id==="cpp"?"C++":"C"}</span>
+          <span className="cine-language-copy"><b>{language.name}</b><span>{language.id==="c"?"从变量、循环到指针，理解数据怎样变化。":language.id==="cpp"?"从基础语法到容器和对象，读懂结构与状态。":"从第一行输出到函数和容器，把想法写成程序。"}</span><small>{lessons.filter(lesson=>lesson.language===language.id).length}节基础课程</small></span>
+          <ArrowUpRight className="cine-language-arrow" size={36}/>
+        </button>)}</div>
+      </section>
+
+      <section className="cine-faq cine-wide" id="home/faq" aria-labelledby="faq-title">
+        <h2 id="faq-title" data-reveal>你可能还想知道。</h2>
+        <div className="cine-faq-layout">
+          <div className="cine-faq-list">{faqs.map(([question,answer],index)=><div key={question}><button id={"cine-question-"+index} aria-expanded={faq===index} aria-controls={"cine-answer-"+index} onClick={()=>setFaq(index)}><span className="cine-faq-dot"/>{question}<ChevronDown size={17}/></button><p id={"cine-answer-"+index} className="cine-faq-response" hidden={faq!==index}>{answer}</p></div>)}</div>
+        </div>
+      </section>
+
+      <section className="cine-close">
+        <div className="cine-wide"><div><h2 data-reveal>下一次“原来如此”，<br/>从这里开始。</h2></div><a className="cine-button cine-button-light" href="#home/try">亲手试一试<ArrowRight size={20}/></a></div>
+      </section>
+      <footer className="cine-footer cine-wide"><a className="cine-brand" href="#home" aria-label="代码灵 CodeClario 返回顶部"><BrandIdentity/></a><p>让代码看得见，让学习有方向。</p><span>C17 · C++17 · Python 3</span></footer>
+    </div>
+    </main>
+
+    {preview&&<div className="cine-lightbox" role="presentation" onClick={()=>setLightbox(null)}><div role="dialog" aria-modal="true" aria-label={preview.title+"界面预览"} ref={dialog} onClick={event=>event.stopPropagation()}>
+      <header><b>{preview.title} · 界面示例</b><div><button onClick={()=>setFullSize(!fullSize)}>{fullSize?"适应窗口":"原尺寸查看"}</button><a href={"/product/"+preview.image} target="_blank" rel="noreferrer">打开原图<ArrowUpRight size={14}/></a><button aria-label="关闭图片预览" onClick={()=>setLightbox(null)}><X size={22}/></button></div></header>
+      <div className={"cine-lightbox-image"+(fullSize?" full-size":"")}><img src={"/product/"+preview.image} alt={"代码灵"+preview.title+"完整界面示例"}/></div>
+    </div></div>}
+  </div>;
 }

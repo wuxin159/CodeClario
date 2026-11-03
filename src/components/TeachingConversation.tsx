@@ -17,7 +17,7 @@ import {
   Square,
 } from "lucide-react";
 import type { Lesson } from "../../shared/curriculum";
-import type { TeachingDecision, TeachingViewContext } from "../../shared/flow";
+import type { TeachingDecision, TeachingViewContext, TeachingConversationEvent } from "../../shared/flow";
 import { teachingPlan } from "../../shared/teaching";
 import { lessonFoundation } from "../../shared/lessonFoundations";
 import type { TeachingFlow } from "../hooks/useTeachingFlow";
@@ -25,6 +25,12 @@ import type { Missions } from "../hooks/useMissions";
 import { useTeachingConversation } from "../hooks/useTeachingConversation";
 import TeachingText from "./TeachingText";
 import AIConnection from "./AIConnection";
+
+export function currentTeachingEvents(events: TeachingConversationEvent[], taskId?: string) {
+  const currentDecision = events.filter(e => e.kind === "decision" && e.taskId === taskId).at(-1);
+  const recentIds = new Set(events.slice(-2).map(e => e.id));
+  return events.filter(e => recentIds.has(e.id) || e.id === currentDecision?.id);
+}
 
 export default function TeachingConversation({
   lesson,
@@ -40,6 +46,7 @@ export default function TeachingConversation({
   running = false,
   viewContext,
   onCompose,
+  compact = false,
 }: {
   lesson: Lesson;
   flow: TeachingFlow;
@@ -54,6 +61,7 @@ export default function TeachingConversation({
   running?: boolean;
   viewContext?: TeachingViewContext;
   onCompose?: () => void;
+  compact?: boolean;
 }) {
   const history = useTeachingConversation(userId, lesson.id, f.task?.updatedAt),
     [text, setText] = useState(""),
@@ -62,6 +70,7 @@ export default function TeachingConversation({
     [saving, setSaving] = useState(false),
     [localError, setLocalError] = useState(""),
     [settings, setSettings] = useState(false),
+    [expandedHistory, setExpandedHistory] = useState(false),
     bottom = useRef<HTMLDivElement>(null),
     scroll = useRef<HTMLDivElement>(null),
     nearBottom = useRef(true),
@@ -69,6 +78,7 @@ export default function TeachingConversation({
   const container = useRef<HTMLElement>(null),
     [mobileHeight, setMobileHeight] = useState<number>();
   useLayoutEffect(() => {
+    if (compact) { setMobileHeight(undefined); return; }
     const node = container.current;
     if (!node) return;
     const measure = () => {
@@ -87,7 +97,7 @@ export default function TeachingConversation({
       window.removeEventListener("resize", measure);
       observer.disconnect();
     };
-  }, [lesson.id]);
+  }, [lesson.id, compact]);
   const [pendingReply, setPendingReply] = useState<{
     text: string;
     kind: string;
@@ -98,7 +108,9 @@ export default function TeachingConversation({
     plan = teachingPlan(lesson),
     mission = m.active?.lessonId === lesson.id ? m.active : null;
   const canAdvance = !!mission && !!m.progress?.canAdvance && !f.stale;
+  const needsAIForCheck = !!task?.practicePassed && !f.stale && !canAdvance && !f.configured;
   const advance = async () => {
+    if (!f.configured) { setSettings(true); return; }
     await onFlush();
     if (await m.advance()) onHome();
   };
@@ -120,6 +132,11 @@ export default function TeachingConversation({
     (!latestDecisionEvent ||
       latestDecisionEvent.taskId !== task?.id ||
       JSON.stringify(latestDecisionEvent.payload) !== JSON.stringify(d));
+  // 首屏聚焦最近的教学动作；完整历史仍可展开，原有证据与记录不裁剪。
+  const visibleEvents = compact && !expandedHistory
+    ? currentTeachingEvents(history.events, task?.id)
+    : history.events;
+  useEffect(()=>setExpandedHistory(false),[lesson.id]);
   useEffect(() => {
     setAsQuestion(false);
     setChoice(null);
@@ -217,14 +234,14 @@ export default function TeachingConversation({
       ref={container}
       style={mobileHeight ? { height: mobileHeight } : undefined}
       id="current-teaching-task"
-      className="task-stage teaching-conversation"
+      className={`task-stage teaching-conversation ${compact ? "compact-teaching" : ""}`}
       aria-label="AI教学对话"
     >
       <header className="teacher-header">
         <div>
           <img src="/brand/mark-gradient.png" alt="" />
           <span>
-            <b>AI老师</b>
+            <b>{d?.provider === "program" ? "运行提示" : "AI老师"}</b>
             <small>
               {!f.enabled
                 ? "主动讲解已暂停"
@@ -240,6 +257,8 @@ export default function TeachingConversation({
             </small>
           </span>
         </div>
+        <div className="teacher-header-tools">
+        {compact && history.events.length > 2 && <button className="teacher-history-toggle" aria-expanded={expandedHistory} onClick={()=>setExpandedHistory(v=>!v)}>{expandedHistory ? "聚焦当前步骤" : "回看教学过程"}</button>}
         <button
           aria-label="教学设置"
           aria-expanded={settings}
@@ -247,6 +266,7 @@ export default function TeachingConversation({
         >
           <Settings2 size={16} />
         </button>
+        </div>
       </header>
       {settings && (
         <div className="teacher-settings">
@@ -319,7 +339,7 @@ export default function TeachingConversation({
           <BookOpen size={13} />
           {lesson.title}
         </div>
-        {history.before && (
+        {history.before && (!compact || expandedHistory) && (
           <button
             className="teacher-earlier"
             onClick={() => {
@@ -347,6 +367,9 @@ export default function TeachingConversation({
             <button onClick={() => setSettings(true)}>连接AI老师</button>
           </article>
         )}
+        {!f.loading && !f.configured && history.events.length > 0 && (
+          <p className="teacher-context-note">代码与运行记录已保留。<button onClick={()=>setSettings(true)}>连接AI，继续针对性讲解</button></p>
+        )}
         {!f.loading && f.configured && !f.enabled && !history.events.length && (
           <article className="teacher-message course-note">
             <p>主动讲解已暂停。你可以先看动画、运行代码，或在这里提出问题。</p>
@@ -359,7 +382,7 @@ export default function TeachingConversation({
             </button>
           </article>
         )}
-        {history.events.map((event) => {
+        {visibleEvents.map((event) => {
           const payload = event.payload as any,
             current =
               event.taskId === task?.id &&
@@ -372,7 +395,7 @@ export default function TeachingConversation({
                 className={`teacher-message ${current ? "" : "earlier-version"}`}
                 key={event.id}
               >
-                <span>{current ? "AI老师" : "AI老师 · 较早讲解"}</span>
+                <span>{payload.provider === "program" ? "运行提示" : current ? "AI老师" : "AI老师 · 较早讲解"}</span>
                 {renderDecision(payload, current)}
               </article>
             );
@@ -475,7 +498,7 @@ export default function TeachingConversation({
         )}
         {pendingDecision && (
           <article className="teacher-message">
-            <span>AI老师</span>
+            <span>{d.provider === "program" ? "运行提示" : "AI老师"}</span>
             {renderDecision(d, true)}
           </article>
         )}
@@ -555,7 +578,7 @@ export default function TeachingConversation({
                 disabled={m.busy || f.busy || saving}
                 onClick={() => void safe(advance)}
               >
-                {m.busy ? "AI正在安排…" : "让AI安排下一项"}
+                {m.busy ? "AI正在安排…" : f.configured ? "让AI安排下一项" : "连接AI，安排下一项"}
                 <ArrowRight size={14} />
               </button>
             </article>
@@ -693,14 +716,15 @@ export default function TeachingConversation({
         <div className="teacher-quick-actions">
           <button
             disabled={saving || f.busy || running}
-            onClick={() =>
+            onClick={() => {
+              if (!f.configured) { setSettings(true); return; }
               void safe(() =>
                 f.discuss(
                   "先用简单的例子讲讲本节的基础知识，我还不太明白。",
                   viewContext,
                 ),
-              )
-            }
+              );
+            }}
           >
             先讲基础
           </button>
@@ -712,16 +736,18 @@ export default function TeachingConversation({
               m.busy ||
               (canAdvance && f.busy)
             }
-            onClick={canAdvance ? () => void safe(advance) : onRun}
+            onClick={canAdvance ? () => void safe(advance) : needsAIForCheck ? () => setSettings(true) : onRun}
           >
             {running
               ? "运行中…"
               : canAdvance
                 ? m.busy
                   ? "AI正在安排…"
-                  : "下一项学习"
-                : task?.attemptId
-                  ? "修改后再运行"
+                  : f.configured ? "下一项学习" : "连接AI再继续"
+                : needsAIForCheck
+                  ? "连接AI，继续检验"
+                  : task?.attemptId
+                  ? task.practicePassed && !f.stale ? "再次运行" : "修改后再运行"
                   : "先运行看看"}
             <ArrowRight size={12} />
           </button>

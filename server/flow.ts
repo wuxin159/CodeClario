@@ -1048,6 +1048,8 @@ async function decide(
               kind: "lesson",
               sceneId: task.viewContext.sceneId,
               provenance: "课程示例，非学生代码真实执行",
+              // 讲解所看示例时同时给出它的源码，避免把示例行号套到学生编辑器的不同程序上。
+              code: scene.code,
               parameters:
                 lesson.index < 6
                   ? lesson.index === 0
@@ -1062,7 +1064,9 @@ async function decide(
                             }
                           : {}),
                       }
-                  : null,
+                  : lesson.topic === "bubble-sort"
+                    ? { variant: task.viewContext.options.fixed ? "完整排序" : "只做一轮" }
+                    : null,
               stepNumber: task.viewContext.stepIndex + 1,
               currentStep: scene.steps[task.viewContext.stepIndex],
               nextStep: scene.steps[task.viewContext.stepIndex + 1],

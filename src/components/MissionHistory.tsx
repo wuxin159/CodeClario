@@ -114,7 +114,7 @@ export default function MissionHistory({
                     ? "本次验证完成"
                     : t.status === "paused"
                       ? "已暂停"
-                      : "进行中"}
+                      : t.id === m.active?.id && m.progress?.canAdvance ? "已验证 · 待继续" : "进行中"}
                 </small>
               </div>
               <span>

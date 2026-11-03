@@ -3,6 +3,7 @@ import type { Lesson } from "../../shared/curriculum";
 import type { Scene } from "../../shared/scenes";
 import { ease } from "../../shared/sceneMotion";
 import { lessonVisualState, visualLesson } from "../../shared/visualLessons";
+import BubbleSortDiagram from "./BubbleSortDiagram";
 
 const compact = (v: unknown, max = 21) => {
   const s = String(v ?? "—");
@@ -212,6 +213,7 @@ export default function TeachingCanvas({
   );
   const atEnd = index === scene.steps.length - 1;
   useEffect(() => setInspection(""), [scene.id, index]);
+  if (spec.kind === "bubble") return <div className="teaching-canvas bubble-lesson-canvas" data-visual-kind="bubble" data-lesson={lesson.id} data-step={index} data-playhead={time.toFixed(4)}><BubbleSortDiagram scene={scene} time={time} reduced={reduced} onInspect={onInspect}/></div>;
   const choose = (text: string) => {
     onInspect?.();
     setInspection(text);

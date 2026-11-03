@@ -93,7 +93,7 @@ export class LearningDatabase {
     const version = (this.db.prepare("PRAGMA user_version").get() as any)
       .user_version;
     // 迁移采用增量建表；拒绝用旧程序打开更高版本的库，避免误写已有学习数据。
-    if (version > 6)
+    if (version > 7)
       throw new Error("数据库版本高于当前程序版本，停止启动以保护数据。");
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS users (
@@ -173,7 +173,18 @@ export class LearningDatabase {
         lesson_id TEXT NOT NULL, record_json TEXT NOT NULL, created_at INTEGER NOT NULL
       );
       CREATE INDEX IF NOT EXISTS experiment_owner ON learning_experiments(user_id,lesson_id,created_at);
-      PRAGMA user_version=6;
+      CREATE TABLE IF NOT EXISTS discovery_sessions (
+        id TEXT PRIMARY KEY,
+        user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+        guest_hash TEXT,
+        session_json TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS discovery_user_time ON discovery_sessions(user_id,updated_at DESC);
+      CREATE INDEX IF NOT EXISTS discovery_guest_time ON discovery_sessions(guest_hash,updated_at DESC);
+      PRAGMA user_version=7;
     `);
   }
   async register(

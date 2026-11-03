@@ -1,9 +1,11 @@
 import type { Lesson } from "./curriculum.ts";
 import { extensionFor } from "./courseExtensions.ts";
 import { upgradeVisualScene } from "./visualSceneUpgrades.ts";
+import { buildBubbleScene, type BubbleState } from "./bubbleSort.ts";
 
 export type SceneOptions = { fixed: boolean; value: number; text: string };
 export type SceneStep = {
+  bubble?: BubbleState;
   id: string;
   line: number;
   phase: string;
@@ -47,6 +49,7 @@ export const defaultSceneOptions = (lesson: Lesson): SceneOptions => ({
 
 // These are authored, deterministic teaching models, never traces of user code.
 export function buildScene(lesson: Lesson, raw: SceneOptions): Scene {
+  if (lesson.topic === "bubble-sort") return buildBubbleScene(lesson.language, undefined, !raw.fixed);
   const extended = extensionFor(lesson.id);
   if (extended)
     return upgradeVisualScene(lesson, {

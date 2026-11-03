@@ -4,6 +4,7 @@ import { visualLesson, type VisualKind } from "./visualLessons.ts";
 // Short authored primers: input to the AI, and an honestly labelled fallback
 // when no model is connected. These teach meanings, not just prerequisite names.
 const primers: Record<VisualKind, string> = {
+  bubble: "把排序拆成一个小规则：比较相邻两项，左边大就交换。内层for完成一轮扫描，让本轮最大值到右边；外层for重新从左边开始，让已就位的尾部逐轮扩大。交换先用temp保存旧值，访问j+1时必须检查下标边界。",
   output:
     "程序按语句顺序执行。输出语句把内容写到屏幕，引号表示文字本身，换行决定下一段文字出现的位置。",
   assignment:

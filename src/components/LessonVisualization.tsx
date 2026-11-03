@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -42,6 +42,20 @@ export default function LessonVisualization({
     context: playbackContext,
     reduced,
   });
+  const stage = useRef<HTMLDivElement>(null), latestPlayback = useRef(playback);
+  latestPlayback.current = playback;
+  useEffect(() => {
+    const node = stage.current;
+    if (!node) return;
+    let live = true;
+    // 切到手机教学窗格或离开图形区域时保留完整步骤，避免没看到的交换仍在后台推进。
+    const observer = new IntersectionObserver(([entry]) => {
+      const current = latestPlayback.current;
+      if (live && !entry.isIntersecting && current.moving) current.seek(Math.floor(current.time));
+    }, { threshold: .05 });
+    observer.observe(node);
+    return () => { live = false; observer.disconnect(); };
+  }, [scene.id]);
   const frame = sceneFrame(scene, playback.time);
   const visual = visualLesson(lesson);
   const [parameterText, setParameterText] = useState(String(options.value));
@@ -67,6 +81,7 @@ export default function LessonVisualization({
   return (
     <section
       className={`lesson-visualization motion-visualization ${reduced ? "reduced" : ""}`}
+      data-visual-kind={visual.kind}
       aria-label="本课可视化"
       tabIndex={0}
       onKeyDown={(e) => {
@@ -94,6 +109,7 @@ export default function LessonVisualization({
       <p className="visual-provenance">
         课程示例 · 用固定代码与图形讲解本节概念
       </p>
+      {lesson.topic === "bubble-sort" && <div className="bubble-lesson-variants" role="group" aria-label="冒泡排序示例版本"><button aria-pressed={!options.fixed} onClick={() => onOptions({ ...options, fixed: false })}>先看一轮</button><button aria-pressed={options.fixed} onClick={() => onOptions({ ...options, fixed: true })}>完整排序</button></div>}
       {lesson.index < 6 && (
         <div className="scene-parameters">
           {lesson.index >= 2 && (
@@ -255,7 +271,7 @@ export default function LessonVisualization({
           <span>{Math.round((playback.time / Math.max(1, last)) * 100)}%</span>
         </div>
       </div>
-      <div className="motion-stage" role="group" aria-label="示例代码与动画">
+      <div ref={stage} className="motion-stage" role="group" aria-label="示例代码与动画">
         <MotionSource
           code={scene.code}
           fromLine={frame.from.line}

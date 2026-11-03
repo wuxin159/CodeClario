@@ -15,6 +15,7 @@ import {
   Flame,
   GraduationCap,
   LayoutDashboard,
+  Lightbulb,
   LoaderCircle,
   Menu,
   MoreHorizontal,
@@ -45,14 +46,16 @@ import { useMissions } from "./hooks/useMissions";
 import TaskHome from "./components/TaskHome";
 import MissionHistory from "./components/MissionHistory";
 import LandingPage from "./components/LandingPage";
+import DiscoveryExperience, { DiscoveryHistory } from "./components/DiscoveryExperience";
 
-type Page = "home" | "dashboard" | "courses" | "lab" | "progress";
+type Page = "home" | "dashboard" | "courses" | "lab" | "progress" | "discover";
 const dateKey = (date = new Date()) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 const langName = (id: Language) =>
   languages.find((item) => item.id === id)!.name;
 const navItems = [
   { id: "dashboard" as Page, title: "我的学习", icon: LayoutDashboard },
+  { id: "discover" as Page, title: "对照实验", icon: Lightbulb },
   { id: "courses" as Page, title: "课程中心", icon: Compass },
   { id: "lab" as Page, title: "课程实践", icon: Code2 },
   { id: "progress" as Page, title: "学习记录", icon: GraduationCap },
@@ -92,6 +95,8 @@ export default function App() {
   });
   const account = useLearningAccount();
   const { state, setState, user } = account;
+  const currentAccountId = useRef(user?.id);
+  currentAccountId.current = user?.id;
   const missions = useMissions(user?.id);
   useEffect(() => {
     void missions.refresh();
@@ -102,7 +107,7 @@ export default function App() {
   } | null>(null);
   const avatar = Array.from(user?.displayName || "访")[0].toUpperCase();
   const boundAccount = useRef<string | null | undefined>(undefined);
-  const pendingDestination = useRef<{ page: Page; lessonId?: string } | null>(
+  const pendingDestination = useRef<{ page: Page; lessonId?: string; start?: boolean } | null>(
     null,
   );
   const [lessonId, setLessonId] = useState(() => {
@@ -121,6 +126,9 @@ export default function App() {
   const [chapter, setChapter] = useState("all");
   const [toast, setToast] = useState("");
   const [attemptDetail, setAttemptDetail] = useState<string | null>(null);
+  const [startingLesson, setStartingLesson] = useState<string | null>(null);
+  const [queuedCourse, setQueuedCourse] = useState<string | null>(null);
+  const queuedCourseIntent = useRef<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const helpDialog = useRef<HTMLElement>(null);
   // 指南打开时把键盘焦点限制在弹窗内，关闭后回到打开它的按钮。
@@ -158,6 +166,11 @@ export default function App() {
     const id = user?.id ?? null;
     const previousAccount = boundAccount.current;
     if (previousAccount !== undefined && previousAccount !== id) {
+      if (previousAccount) {
+        // 旧账户退出/被切换时立即撤销待启动意图，不能让同一轮effect把它交给另一个账户。
+        queuedCourseIntent.current = null;
+        setQueuedCourse(null);
+      }
       // The selected lesson is public context. Account-owned drafts and results
       // are reset by the account hook and workspace key, not by redirecting it.
       setQuery("");
@@ -165,7 +178,7 @@ export default function App() {
       setMobileNav(false);
     }
     boundAccount.current = id;
-    if (!id && page !== "home") {
+    if (!id && page !== "home" && page !== "discover") {
       pendingDestination.current = previousAccount ? null : { page, lessonId };
       setPage("home");
       if (previousAccount) setAccountDialog(null);
@@ -255,7 +268,39 @@ export default function App() {
         .refreshLearning(user.id)
         .catch((error) => setToast(error.message));
   }
-  if (account.loading)
+  async function startLesson(id: string) {
+    if (!user || startingLesson) return;
+    const owner = user.id;
+    setStartingLesson(id);
+    try {
+      // 先保存现有草稿，再采纳新课；同一当前任务只恢复，避免重置已有学习证据。
+      await account.flush();
+      if (currentAccountId.current !== owner) return;
+      const ready = missions.active?.lessonId === id || await missions.adopt(id);
+      if (currentAccountId.current !== owner) return;
+      if (ready) openLesson(id);
+      else setToast("这节课暂未设为当前任务，请稍后重试。");
+    } catch (e) { setToast((e as Error).message); }
+    finally { setStartingLesson(null); }
+  }
+  const continueDiscovery = () => {
+    if (account.loading) return;
+    if (user) void startLesson("c-13");
+    else {
+      pendingDestination.current = { page: "discover" };
+      setAccountDialog({ mode: "login", reason: "登录后保存这次实验，再继续自己的课程。" });
+    }
+  };
+  useEffect(() => {
+    if (!queuedCourse || queuedCourseIntent.current !== queuedCourse || !user || account.loading) return;
+    // 登录成功后的下一次渲染才采纳课程，确保任务API使用的是已经解析的新账户。
+    const target = queuedCourse;
+    queuedCourseIntent.current = null;
+    setQueuedCourse(null);
+    void startLesson(target);
+  }, [queuedCourse, user?.id, account.loading]);
+  // 公开内容不等待账户接口；体验操作在身份尚未解析时禁用，避免误建游客记录。
+  if (account.loading && page !== "home" && page !== "discover")
     return (
       <div className="session-loading">
         <LoaderCircle className="spin" size={24} />
@@ -279,19 +324,44 @@ export default function App() {
         setToast(message);
         if (accountDialog.mode !== "profile") {
           const target = pendingDestination.current;
-          if (target?.lessonId) setLessonId(target.lessonId);
-          navigate(target?.page ?? "dashboard");
+          if (target?.start && target.lessonId) {
+            queuedCourseIntent.current = target.lessonId;
+            setQueuedCourse(target.lessonId);
+            navigate("home");
+          } else {
+            if (target?.lessonId) setLessonId(target.lessonId);
+            navigate(target?.page ?? "dashboard");
+          }
           pendingDestination.current = null;
         }
       }}
     />
   ) : null;
+  if (page === "discover" && !user)
+    return <div className="public-discovery-page">
+      <header><a href="#home" onClick={()=>navigate("home")} aria-label="返回代码灵主页"><BrandIdentity /></a><button className="button secondary" onClick={()=>{if(!account.loading){pendingDestination.current={page:"discover"};setAccountDialog({mode:"login"});}}}>登录保存记录</button></header>
+      <main><DiscoveryExperience disabled={account.loading} onContinue={continueDiscovery} /></main>
+      {authModal}
+    </div>;
   if (page === "home" || !user)
     return (
       <>
         <LandingPage
           authenticated={!!user}
+          userId={user?.id}
+          accountLoading={account.loading}
+          startingLesson={!!startingLesson}
+          onExploreContinue={continueDiscovery}
+          onStartLesson={(id) => {
+            if (account.loading || !findLesson(id)) return;
+            if (user) void startLesson(id);
+            else {
+              pendingDestination.current = { page: "home", lessonId: id, start: true };
+              setAccountDialog({ mode: "login", reason: `登录后开始学习「${findLesson(id)!.title}」。` });
+            }
+          }}
           onEnter={() => {
+            if (account.loading) return;
             if (user) navigate("dashboard");
             else {
               pendingDestination.current = { page: "dashboard" };
@@ -547,8 +617,13 @@ export default function App() {
             onCourses={() => navigate("courses")}
             onRecords={() => navigate("progress")}
             onRequireAuth={() => setAccountDialog({ mode: "login" })}
+            onExplore={() => navigate("discover")}
           />
         )}
+        {page === "discover" && <main className="page-content discovery-page">
+          <div className="discovery-page-title"><p className="eyebrow">从一个小实验开始</p><h1>看见你的想法，怎样变成理解</h1><p className="page-description">先判断，再真实运行。每次只弄清一个问题。</p></div>
+          <DiscoveryExperience key={user.id} userId={user.id} onContinue={continueDiscovery} />
+        </main>}
 
         {page === "courses" && (
           <main className="page-content courses-page">
@@ -660,7 +735,8 @@ export default function App() {
                     <button
                       className="lesson-row"
                       key={lesson.id}
-                      onClick={() => openLesson(lesson.id)}
+                      disabled={!!startingLesson || missions.busy}
+                      onClick={() => void startLesson(lesson.id)}
                     >
                       <span
                         className={`lesson-order ${state.completed.includes(lesson.id) ? "done" : ""}`}
@@ -691,7 +767,7 @@ export default function App() {
                         {lesson.minutes} 分钟
                       </span>
                       <span className="lesson-open">
-                        {state.completed.includes(lesson.id)
+                        {startingLesson === lesson.id ? "正在准备…" : state.completed.includes(lesson.id)
                           ? "再次练习"
                           : "开始学习"}
                         <ArrowRight size={15} />
@@ -817,6 +893,7 @@ export default function App() {
                 color="purple"
               />
             </div>
+            <DiscoveryHistory key={user.id} userId={user.id} onOpen={()=>navigate("discover")} />
             <div className="learning-record-panels">
               <MissionHistory
                 missions={missions}

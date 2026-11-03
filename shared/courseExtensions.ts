@@ -1,6 +1,7 @@
 import type { Language, Lesson } from "./curriculum.ts";
 import type { Question } from "./teaching.ts";
 import type { SceneStep } from "./scenes.ts";
+import { bubbleExtensions } from "./bubbleLessons.ts";
 
 type Quiz = Omit<Question, "id">;
 type DemoStep = [
@@ -2172,7 +2173,7 @@ definitions.push(
   },
 );
 
-export const courseExtensions = definitions.map((d) => {
+const existingExtensions = definitions.map((d) => {
   const sharedTopics: Record<string, string> = {
     算术运算与表达式: "arithmetic",
     "while 循环与终止条件": "while",
@@ -2246,5 +2247,6 @@ export const courseExtensions = definitions.map((d) => {
   };
   return { lesson, plan, demo: d.demo };
 });
+export const courseExtensions = [...existingExtensions, ...bubbleExtensions];
 export const extensionFor = (id: string) =>
   courseExtensions.find((item) => item.lesson.id === id);
