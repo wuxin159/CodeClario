@@ -1,0 +1,136 @@
+/* 播放栏与阅读区各占一行：内容只在自己的区域滚动，不再从底栏下面穿过。 */
+.mode-mobile-label { display:none; }
+.teacher-question-reference { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 10px; border-left:3px solid #386bd0; border-radius:4px; background:#edf3fe; color:#345681; }
+.teacher-question-reference span { display:flex; min-width:0; flex-direction:column; gap:3px; }
+.teacher-question-reference small { font-size:11px; color:#536d91; }
+.teacher-question-reference b { font-size:12px; font-weight:500; line-height:1.6; overflow-wrap:anywhere; }
+.teacher-question-reference button { border:0; background:transparent; color:#526c90; padding:5px; display:grid; place-items:center; flex:none; min-width:28px; min-height:28px; }
+.classroom-source-wrap { min-width:0; display:flex; }
+.classroom-source-wrap[hidden] { display:none!important; }
+.classroom-source-wrap .motion-source { width:100%; }
+.app-shell .classroom-workspace .motion-stage { grid-template-columns:minmax(180px,var(--source-width,38%)) 10px minmax(0,1fr); }
+.app-shell .classroom-workspace .motion-stage.source-collapsed { display:block; }
+.lesson-splitter { width:10px; cursor:col-resize; touch-action:none; background:#e4ebf4; position:relative; }
+.lesson-splitter::after { content:""; position:absolute; top:calc(50% - 21px); left:4px; width:2px; height:42px; border-radius:2px; background:#9eb3d0; }
+.lesson-splitter:hover,.lesson-splitter:focus-visible { background:#cfdef3; }
+.lesson-explore-actions { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px; }
+.lesson-explore-actions button { border:1px solid #cbdaee; background:#f1f6ff; color:#345e9e; border-radius:5px; padding:7px 12px; min-height:34px; font-size:12px; cursor:pointer; }
+.concept-stage [role="button"] { cursor:pointer; }
+.concept-stage [role="button"]:hover { outline:1px solid #83a7dd; outline-offset:2px; }
+.concept-stage [role="button"]:focus-visible { outline:3px solid #6f9ce2; outline-offset:3px; }
+.concept-stage .ls-inspection { flex:none; }
+.bubble-object-question { padding:7px 0; border:0; background:none; color:#245dd8; font-size:12px; cursor:pointer; }
+.lesson-scene small,.lesson-scene .ls-inspection,.lesson-scene .ls-inspection p,.lesson-scene .ls-inspection span { font-size:12px; color:#536782; }
+.lesson-scene .ls-digit-axis small,.lesson-scene .ls-filter-head { color:#536782; font-size:12px; }
+.lesson-scene .ls-digit-axis b { font-size:12px; }
+.lesson-scene .ls-cells span { font-size:11px; color:#536782; }
+.lesson-scene .ls-observation { font-size:12px!important; color:#536782; }
+.lesson-scene .ls-terminal small { color:#bdcde2; }
+.concept-stage .concept-heading small,.concept-stage .call-frame small,.concept-stage .pointer-access small,.concept-stage .pointer-object small { font-size:12px; color:#536782; }
+.app-shell .classroom-workspace .visual-provenance { color:#536782; font-size:12px; }
+.app-shell .classroom-workspace .visual-footer { color:#536782; font-size:12px; }
+@media(min-width:1001px) {
+  .app-shell .classroom-workspace[data-mode="visual"] .learning-grid > .study-center { display:grid; grid-template-rows:auto minmax(0,1fr); overflow:hidden; }
+  .app-shell .classroom-workspace[data-mode="visual"] .study-center-body:not([hidden]) { min-height:0; height:100%; overflow:hidden; }
+  .app-shell .classroom-workspace .lesson-visualization { display:grid; grid-template-rows:minmax(0,1fr) auto; min-height:0; height:100%; padding:0; }
+  .app-shell .classroom-workspace .lesson-reading-pane { min-height:0; overflow:auto; overscroll-behavior:contain; scrollbar-width:thin; padding:16px 18px; }
+  .app-shell .classroom-workspace .visual-transport { position:static; bottom:auto; z-index:auto; margin:0; padding:11px 18px; border-top:1px solid #dfe7f1; background:#fff; }
+  .app-shell .classroom-workspace .lesson-reading-pane > .optional-course-check { margin:16px 0 0; }
+  .app-shell .classroom-workspace .lesson-reading-pane > .study-next-action { margin:12px 0 0; }
+  .app-shell .classroom-workspace .motion-stage .motion-source { min-height:0; max-height:none; }
+  .app-shell .classroom-workspace .motion-stage .motion-source pre { max-height:480px; }
+  .app-shell .classroom-workspace .study-mode-tabs { position:static; }
+}
+@media(max-width:1000px) {
+  .lesson-reading-pane { display:contents; }
+  .app-shell .classroom-workspace .mode-desktop-label { display:none; }
+  .mode-mobile-label { display:inline; }
+  .app-shell .classroom-workspace[data-mobile-pane="observe"] .study-mode-tabs .mode-code,
+  .app-shell .classroom-workspace[data-mobile-pane="observe"] .study-mode-tabs .mode-experiment,
+  .app-shell .classroom-workspace[data-mobile-pane="code"] .study-mode-tabs .mode-visual,
+  .app-shell .classroom-workspace[data-mobile-pane="code"] .study-mode-tabs .mode-replay { display:none; }
+  .app-shell .classroom-workspace .study-mode-tabs { min-height:40px; padding:3px 12px; }
+  .app-shell .classroom-workspace .visual-provenance,.app-shell .classroom-workspace .motion-playback-status { display:none; }
+  .app-shell .classroom-workspace .visual-controls { margin:0; }
+  .app-shell .classroom-workspace .classroom-visual-actions { gap:14px; }
+}
+@media(max-width:700px) {
+  .lesson-splitter { display:none; }
+  .app-shell .classroom-workspace .classroom-source-wrap { order:2; }
+  .app-shell .classroom-workspace .motion-stage { display:flex; flex-direction:column; }
+  .app-shell .classroom-workspace .motion-stage.source-collapsed { display:block; }
+  .app-shell .classroom-workspace .lesson-explore-actions { order:6; margin:8px 0; }
+  .app-shell .classroom-workspace .visual-transport { margin-bottom:8px; padding-top:8px; }
+  .app-shell .classroom-workspace .optional-course-check,.app-shell .classroom-workspace .study-next-action { order:10; margin:12px 0; }
+  .lesson-explore-actions button,.bubble-object-question { min-height:44px; }
+  .teacher-question-reference button { min-height:36px; min-width:36px; }
+}
+
+/* 独立探究窗口使用浏览器原生模态层。主课堂在打开期间不可操作，避免混淆两套示例状态。 */
+.concept-explore-dialog { width:min(920px,calc(100vw - 32px)); max-height:calc(100dvh - 32px); border:1px solid #d5dfed; border-radius:12px; padding:0; color:#2d3f58; background:#fff; box-shadow:0 24px 80px #10243e33; overflow:auto; font:14px/1.7 "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; }
+.concept-explore-dialog::backdrop { background:#10223d70; }
+.explore-header { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; padding:20px 24px 10px; }
+.explore-header small { color:#587398; font-size:12px; }
+.explore-header h2 { font-size:22px; line-height:1.45; font-weight:600; margin:5px 0 0; }
+.explore-header > button { flex:none; display:grid; place-items:center; border:0; background:none; width:36px; height:36px; color:#556f91; cursor:pointer; }
+.explore-provenance { padding:0 24px; margin:0 0 16px; color:#60718a; font-size:12px; }
+.explore-layout { display:grid; grid-template-columns:minmax(230px,.8fr) minmax(0,1.2fr); border-block:1px solid #e2e9f2; min-height:340px; }
+.explore-code { background:#172638; color:#e5edf8; min-width:0; padding:14px 0; }
+.explore-code > span { display:block; padding:0 16px 10px; font-size:12px; color:#bbcbdf; }
+.explore-code pre { margin:0; padding:0 8px; overflow:auto; font:13px/1.85 Consolas,monospace; }
+.explore-code pre > div { display:flex; gap:10px; padding:5px 8px; border-left:2px solid transparent; }
+.explore-code pre > div.active { background:#2b476c; border-left-color:#88b5f3; }
+.explore-code pre small { color:#b3c7e0; min-width:16px; flex:none; font:11px/1.85 Consolas,monospace; }
+.explore-code code { white-space:pre-wrap; overflow-wrap:anywhere; }
+.explore-stage { padding:20px; min-width:0; background:#f5f8fc; }
+.explore-moment-title { display:flex; align-items:center; gap:13px; margin-bottom:18px; }
+.explore-moment-title > span { font-size:12px; color:#526b8c; }
+.explore-moment-title b { font-size:17px; font-weight:600; }
+.explore-snapshot { padding:12px; background:#e4edfd; border-radius:6px; margin-bottom:18px; display:flex; justify-content:space-between; gap:16px; align-items:center; }
+.explore-snapshot small { font-size:12px; color:#536d91; }
+.explore-snapshot strong { font:23px/1.3 Consolas,monospace; color:#285fc4; }
+.explore-object-space { position:relative; }
+.explore-objects { display:flex; flex-wrap:wrap; gap:12px; }
+.explore-objects section { flex:1; min-width:140px; background:#fff; border:1px solid #c9daef; border-radius:6px; padding:13px; }
+.explore-objects section.released { border-style:dashed; background:transparent; }
+.explore-objects header { display:flex; flex-wrap:wrap; gap:5px 12px; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.explore-objects header b { font-size:13px; }
+.explore-objects header small { font-size:11px; color:#657b99; }
+.explore-objects section > div { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-top:1px solid #edf1f7; padding:9px 0; }
+.explore-objects code { font:13px Consolas,monospace; color:#567499; }
+.explore-objects strong { color:#285fc4; font-size:22px; line-height:1.4; font-weight:500; }
+.explore-explanation { margin:18px 0 0; line-height:1.85; color:#3d5778; font-size:14px; }
+.explore-calculation { font:22px/1.4 Consolas,monospace; color:#245dd8; margin-bottom:15px; text-align:center; }
+.explore-moving-value { position:absolute; right:14px; top:-20px; background:#285fc4; border-radius:5px; padding:5px 10px; color:#fff; font-size:13px; pointer-events:none; animation:explore-value-arrives .6s ease-out both; }
+@keyframes explore-value-arrives { 0% {transform:translateY(-22px);opacity:0;} 40% {opacity:1;} 100% {transform:translateY(25px);opacity:0;} }
+.explore-footer { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:14px 20px; background:#fff; }
+.explore-footer button,.explore-variants button,.explore-guesses button,.explore-reveal { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:8px 12px; border:1px solid #c5d6ed; border-radius:5px; background:#fff; color:#315c98; font-family:inherit; font-size:13px; line-height:1.5; cursor:pointer; min-height:36px; }
+.explore-footer button:disabled { opacity:.45; cursor:default; }
+.explore-footer > span { color:#607792; font-size:11px; }
+.explore-variants { display:flex; flex-wrap:wrap; gap:8px; padding:0 24px 16px; }
+.explore-variants button[aria-pressed="true"],.explore-guesses button[aria-pressed="true"] { background:#e5efff; border-color:#85a9e0; color:#244f9b; }
+.explore-stage h3 { font-size:17px; margin:0 0 15px; line-height:1.6; }
+.explore-guesses { display:flex; flex-wrap:wrap; gap:9px; margin-bottom:18px; }
+.explore-guesses button:disabled { cursor:default; }
+.explore-reveal { background:#285fc4; border-color:#285fc4; color:#fff; }
+.explore-guess-feedback { font-size:13px; color:#3a648f; margin:0 0 13px; }
+.explore-bindings { display:flex; flex-wrap:wrap; gap:14px; margin-bottom:14px; }
+.explore-bindings code { color:#315e9c; font:13px Consolas,monospace; }
+.explore-output { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-top:16px; padding:10px 12px; background:#e7eef9; border-radius:5px; }
+.explore-output small { color:#526d91; font-size:12px; }
+.explore-output pre { margin:0; color:#24549a; font:16px/1.6 Consolas,monospace; white-space:pre-wrap; }
+@media(max-width:700px) {
+  .concept-explore-dialog { width:calc(100vw - 20px); max-height:calc(100dvh - 20px); border-radius:8px; }
+  .explore-header { padding:15px 14px 10px; gap:10px; }
+  .explore-header h2 { font-size:18px; }
+  .explore-provenance { padding:0 14px; }
+  .explore-layout { display:flex; flex-direction:column-reverse; }
+  .explore-stage { padding:16px 14px; }
+  .explore-code pre { max-height:210px; }
+  .explore-footer { padding:12px; gap:8px; }
+  .explore-footer > span { width:100%; order:2; }
+  .explore-footer button,.explore-variants button,.explore-guesses button,.explore-reveal { min-height:44px; }
+  .explore-variants { padding:0 14px 12px; }
+  .explore-objects section { min-width:125px; padding:10px; }
+}
+@media(prefers-reduced-motion:reduce) { .explore-moving-value { animation:none; display:none; } }

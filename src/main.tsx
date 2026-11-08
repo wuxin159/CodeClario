@@ -11,8 +11,11 @@ import "./product.css";
 import "./landing.css";
 import "./brand.css";
 import "./teaching-experience.css";
-import "./discovery.css";
 import "./modern.css";
+import "./classroom.css";
+import "./course-scenes.css";
+import "./classroom-polish.css";
+import "./navigation.css";
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

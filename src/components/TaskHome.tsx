@@ -31,7 +31,6 @@ export default function TaskHome({
   onCourses,
   onRecords,
   onRequireAuth,
-  onExplore,
 }: {
   missions: Missions;
   user: PublicUser | null;
@@ -40,7 +39,6 @@ export default function TaskHome({
   onCourses: () => void;
   onRecords: () => void;
   onRequireAuth: () => void;
-  onExplore?: () => void;
 }) {
   const [editing, setEditing] = useState(false),
     [language, setLanguage] = useState<Language>("python"),
@@ -110,7 +108,6 @@ export default function TaskHome({
           <button className="text-button" onClick={onCourses}>
             自主选择课程
           </button>
-          {onExplore && <button className="text-button" onClick={onExplore}>先做一个小实验<ArrowRight size={15}/></button>}
         </div>{localError && <p className="mission-error" role="alert">{localError}</p>}<AIConnection userId={user?.id} onSaved={refreshAI} onRequireAuth={onRequireAuth}/></div>
       ) : (
         <div className="task-home-columns">
@@ -461,7 +458,6 @@ export default function TaskHome({
                 </>
               )}
             </section>
-            {onExplore && <button className="resource-entry modern-experiment-entry" onClick={onExplore}><div><b>做一个对照实验</b><span>看看你的判断与真实执行有什么不同</span></div><ArrowRight size={17}/></button>}
             <button className="resource-entry" onClick={onCourses}>
               <BookOpen />
               <div>

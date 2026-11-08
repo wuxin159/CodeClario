@@ -15,6 +15,7 @@ import {
   Send,
   Settings2,
   Square,
+  X,
 } from "lucide-react";
 import type { Lesson } from "../../shared/curriculum";
 import type { TeachingDecision, TeachingViewContext, TeachingConversationEvent } from "../../shared/flow";
@@ -25,6 +26,7 @@ import type { Missions } from "../hooks/useMissions";
 import { useTeachingConversation } from "../hooks/useTeachingConversation";
 import TeachingText from "./TeachingText";
 import AIConnection from "./AIConnection";
+import { captureQuestion, mergeQuestionDraft, questionContext, type TeachingQuestionRequest } from "./teachingQuestion";
 
 export function currentTeachingEvents(events: TeachingConversationEvent[], taskId?: string) {
   const currentDecision = events.filter(e => e.kind === "decision" && e.taskId === taskId).at(-1);
@@ -47,6 +49,7 @@ export default function TeachingConversation({
   viewContext,
   onCompose,
   compact = false,
+  questionRequest,
 }: {
   lesson: Lesson;
   flow: TeachingFlow;
@@ -62,6 +65,7 @@ export default function TeachingConversation({
   viewContext?: TeachingViewContext;
   onCompose?: () => void;
   compact?: boolean;
+  questionRequest?: TeachingQuestionRequest;
 }) {
   const history = useTeachingConversation(userId, lesson.id, f.task?.updatedAt),
     [text, setText] = useState(""),
@@ -77,6 +81,20 @@ export default function TeachingConversation({
     manualScroll = useRef(false);
   const container = useRef<HTMLElement>(null),
     [mobileHeight, setMobileHeight] = useState<number>();
+  const [questionReference, setQuestionReference] = useState<TeachingQuestionRequest>();
+  const automaticDraft = useRef("");
+  const draftTouched = useRef(false);
+  useEffect(() => {
+    if (!questionRequest) return;
+    const captured = captureQuestion(questionRequest), previousAutomatic = automaticDraft.current, edited = draftTouched.current;
+    // 引用和正文分别保存；保留手写内容，但再次点选会明确更新引用卡片。
+    setQuestionReference(captured);
+    setText(current => mergeQuestionDraft(current, previousAutomatic, captured.text, edited));
+    automaticDraft.current = captured.text;
+    draftTouched.current = edited && Boolean(text.trim());
+    setAsQuestion(true);
+    container.current?.querySelector<HTMLTextAreaElement>("textarea")?.focus({ preventScroll: true });
+  }, [questionRequest?.nonce]);
   useLayoutEffect(() => {
     if (compact) { setMobileHeight(undefined); return; }
     const node = container.current;
@@ -115,6 +133,7 @@ export default function TeachingConversation({
     if (await m.advance()) onHome();
   };
   const predicting =
+    !questionReference &&
     !asQuestion &&
     !f.stale &&
     d?.responseMode === "prediction" &&
@@ -258,7 +277,7 @@ export default function TeachingConversation({
           </span>
         </div>
         <div className="teacher-header-tools">
-        {compact && history.events.length > 2 && <button className="teacher-history-toggle" aria-expanded={expandedHistory} onClick={()=>setExpandedHistory(v=>!v)}>{expandedHistory ? "聚焦当前步骤" : "回看教学过程"}</button>}
+        {compact && history.events.length > 2 && <button className="teacher-history-toggle" aria-label={expandedHistory ? "聚焦当前步骤" : "回看教学过程"} aria-expanded={expandedHistory} onClick={()=>setExpandedHistory(v=>!v)}>{expandedHistory ? "聚焦当前" : "教学记录"}</button>}
         <button
           aria-label="教学设置"
           aria-expanded={settings}
@@ -618,19 +637,20 @@ export default function TeachingConversation({
             {localError || f.error || history.error || m.error}
             <button
               disabled={f.busy || saving}
-              onClick={() =>
-                void safe(() =>
-                  task?.attemptId && !f.stale ? f.retry() : f.enter(),
-                )
-              }
+              onClick={() => {
+                if (!f.configured) { setSettings(true); return; }
+                // 讨论失败后复用原请求和固定引用，不能退回入口分析而丢掉问题上下文。
+                void safe(() => f.error || (task?.attemptId && !f.stale) ? f.retry() : f.enter());
+              }}
             >
-              重试
+              {f.configured ? "重试" : "连接AI后继续"}
             </button>
           </div>
         )}
         <div ref={bottom} />
       </div>
       <div className="teacher-composer">
+        {questionReference ? <div className="teacher-question-reference"><span><small>本次提问引用{questionReference.details ? ` · ${questionReference.details}` : ""}</small><b>{questionReference.label}</b></span><button type="button" aria-label="取消步骤引用" onClick={() => { const previousAutomatic = automaticDraft.current, removeAutomatic = !draftTouched.current; setQuestionReference(undefined); setText(current => removeAutomatic && current === previousAutomatic ? "" : current); automaticDraft.current = ""; }}><X size={15}/></button></div> : viewContext && <div className="classroom-context">当前画面 · {viewContext.kind === "lesson" ? "课程示例" : viewContext.kind === "execution" ? "真实回放" : "错误实验"} · 第 {viewContext.stepIndex + 1} 步</div>}
         {predicting && (
           <div className="teacher-reply-mode">
             预测编辑器里的代码{" "}
@@ -652,7 +672,8 @@ export default function TeachingConversation({
               return;
             }
             if (!text.trim()) return;
-            const answer = text;
+            const answer = text, submittedReference = questionReference;
+            const submittedContext = questionContext(submittedReference, viewContext);
             setPendingReply({
               text: answer,
               kind: predicting ? "prediction_reply" : "discussion",
@@ -664,15 +685,18 @@ export default function TeachingConversation({
                 if (predicting) {
                   if (!(await f.replyPrediction(answer))) {
                     setPendingReply(null);
-                    setText(answer);
+                    setText(current => current.trim() ? current : answer);
                   }
-                } else if (!(await f.discuss(answer, viewContext))) {
+                } else if (!(await f.discuss(answer, submittedContext))) {
                   setPendingReply(null);
-                  setText(answer);
+                  setText(current => current.trim() ? current : answer);
+                } else {
+                  // 较早请求完成时不能清除用户在等待期间选中的新引用。
+                  setQuestionReference(current => current?.nonce === submittedReference?.nonce ? undefined : current);
                 }
               } catch (error) {
                 setPendingReply(null);
-                setText(answer);
+                setText(current => current.trim() ? current : answer);
                 throw error;
               }
             });
@@ -689,7 +713,7 @@ export default function TeachingConversation({
             rows={2}
             maxLength={1000}
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => { draftTouched.current = true; setText(e.target.value); }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();

@@ -1,0 +1,84 @@
+/* 侧栏按可见视口分配空间：品牌和账户不收缩，只有中间内容滚动。
+   min-height: 0 解除 flex 子项的内容最小高度，避免矮屏把账户挤出窗口。 */
+.app-shell .sidebar {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  padding-block: clamp(12px, 2.5dvh, 24px) max(12px, env(safe-area-inset-bottom));
+}
+
+.app-shell .sidebar > .brand {
+  flex: 0 0 auto;
+  margin-bottom: clamp(12px, 2.5dvh, 24px);
+}
+
+.app-shell .sidebar-scroll {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
+}
+
+.app-shell .sidebar-scroll:focus-visible {
+  outline: 2px solid #89a8ec;
+  outline-offset: -2px;
+}
+
+.app-shell .sidebar-label {
+  margin-top: 0;
+}
+
+.app-shell .sidebar nav {
+  gap: 4px;
+}
+
+.app-shell .sidebar-course {
+  margin-top: 16px;
+  padding-top: 12px;
+}
+
+.app-shell .sidebar-scroll > .growth-card {
+  margin: 12px 0 0;
+  padding: 12px;
+}
+
+.app-shell .sidebar-bottom {
+  flex: 0 0 auto;
+  margin-top: 0;
+  padding-top: 10px;
+}
+
+.app-shell .sidebar-bottom .help-link {
+  min-height: 44px;
+}
+
+.app-shell .sidebar-bottom .profile {
+  padding: 12px 8px 0;
+  margin-top: 8px;
+}
+
+.app-shell .sidebar-bottom .profile > div {
+  min-width: 0;
+}
+
+.app-shell .sidebar-bottom .profile b,
+.app-shell .sidebar-bottom .profile small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 课堂桌面仍使用窄图标栏；抽屉打开时恢复完整导航与学习摘要。 */
+@media (min-width: 1101px) {
+  .app-shell.is-workspace .sidebar-scroll > .growth-card {
+    display: none;
+  }
+  .app-shell.is-workspace .sidebar-scroll {
+    scrollbar-gutter: auto;
+  }
+}

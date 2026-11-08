@@ -45,8 +45,8 @@ import { useTeachingFlow } from "../hooks/useTeachingFlow";
 import TeachingConversation from "./TeachingConversation";
 import LiveEvidence from "./LiveEvidence";
 import ErrorLab from "./ErrorLab";
-import DiscoveryExperience from "./DiscoveryExperience";
 import PredictionComparison from "./PredictionComparison";
+import { captureQuestion, type TeachingQuestionRequest } from "./teachingQuestion";
 import type { TeachingViewContext } from "../../shared/flow";
 import { lessonIntroduction } from "../../shared/lessonIntroduction";
 import type { Missions } from "../hooks/useMissions";
@@ -108,15 +108,15 @@ export default function LearningWorkspace(p: Props) {
     "code",
   );
   const [mode, setMode] = useState<"visual" | "code" | "replay" | "experiment">(
-    "code",
+    "visual",
   );
   const [mobilePane, setMobilePane] = useState<"teach" | "code" | "observe">("teach");
+  const [questionRequest, setQuestionRequest] = useState<TeachingQuestionRequest>();
   useEffect(() => {
     setMobilePane(current => current === "teach" ? current :
       mode === "code" || mode === "experiment" ? "code" : "observe");
   }, [mode]);
   const [experimentView, setExperimentView] = useState<TeachingViewContext>();
-  const [discoveryOpen, setDiscoveryOpen] = useState(false);
   const [adopting, setAdopting] = useState(false);
   const [adoptError, setAdoptError] = useState("");
   const experimentRun = useRef<{ run: () => void }>(null);
@@ -509,11 +509,11 @@ export default function LearningWorkspace(p: Props) {
     }
   }
   return (
-    <main className="learning-workspace modern-workspace" data-mode={mode} data-mobile-pane={mobilePane} onKeyDownCapture={(event) => {
+    <main className="learning-workspace modern-workspace classroom-workspace" data-mode={mode} data-mobile-pane={mobilePane} onKeyDownCapture={(event) => {
       // 在编辑器默认键位之前消费快捷键，并按当前模式分派，防止插空行或运行错代码。
       if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
-        // 对话表单和独立对照实验有自己的提交语义，不能触发隐藏的主程序运行。
-        if ((event.target as HTMLElement).closest('.teacher-composer, .discovery, .prediction-comparison, .study-coach, [role="dialog"]')) return;
+        // 对话表单和概念探究弹窗有自己的提交语义，不能触发隐藏的主程序运行。
+        if ((event.target as HTMLElement).closest('.teacher-composer, .prediction-comparison, .study-coach, dialog, [role="dialog"]')) return;
         event.preventDefault();
         event.stopPropagation();
         if (mode === "experiment") experimentRun.current?.run();
@@ -624,11 +624,9 @@ export default function LearningWorkspace(p: Props) {
             catch(e) { setAdoptError((e as Error).message); }
             finally { setAdopting(false); }
           }}>{adopting ? "正在准备…" : "学习这节课"}<ArrowRight size={15}/></button>}
-          {lesson.language === "c" && ["c-2", "c-13"].includes(lesson.id) && <button className="button secondary" aria-expanded={discoveryOpen} onClick={()=>setDiscoveryOpen(v=>!v)}>{discoveryOpen ? "收起对照实验" : "做个副本与指针对照实验"}</button>}
         </div>
       </header>
       {adoptError && <p role="alert" className="task-warning">{adoptError}</p>}
-      {discoveryOpen && <div className="workspace-discovery"><DiscoveryExperience userId={userId} compact onContinue={()=>setDiscoveryOpen(false)} /></div>}
       <nav className="task-mobile-navigation" aria-label="任务工作区域">
         <button
           aria-pressed={mobilePane === "teach"}
@@ -642,11 +640,12 @@ export default function LearningWorkspace(p: Props) {
         >
           代码
         </button>
-        <button aria-pressed={mobilePane === "observe"} onClick={() => { setMobilePane("observe"); setMode("replay"); setPane("visual"); }}>观察</button>
+        <button aria-pressed={mobilePane === "observe"} onClick={() => { setMobilePane("observe"); if (mode === "code" || mode === "experiment") setMode(mode === "code" && !stale && result?.trace?.steps?.length ? "replay" : "visual"); setPane("visual"); }}>观察</button>
       </nav>
       <div className={`learning-grid work-mode-${mode}`}>
         <TeachingConversation
           compact
+          questionRequest={questionRequest}
           lesson={lesson}
           running={running}
           onCompose={() => setVisualFocus((v) => v + 1)}
@@ -812,7 +811,7 @@ export default function LearningWorkspace(p: Props) {
         >
           <div className="study-mode-tabs">
             <button
-              className={mode === "visual" ? "selected" : ""}
+              className={"mode-visual " + (mode === "visual" ? "selected" : "")}
               onClick={() => {
                 setMode("visual");
                 setPane("visual");
@@ -822,7 +821,7 @@ export default function LearningWorkspace(p: Props) {
               课程演示
             </button>
             <button
-              className={mode === "code" ? "selected" : ""}
+              className={"mode-code " + (mode === "code" ? "selected" : "")}
               onClick={() => {
                 setMode("code");
                 setMobilePane("code");
@@ -833,16 +832,16 @@ export default function LearningWorkspace(p: Props) {
               我的代码
             </button>
             <button
-              className={mode === "replay" ? "selected" : ""}
+              className={"mode-replay " + (mode === "replay" ? "selected" : "")}
               onClick={() => {
                 setMode("replay");
                 setPane("visual");
               }}
             >
-              我的代码动画
+              <span className="mode-desktop-label">我的代码动画</span><span className="mode-mobile-label">真实回放</span>
             </button>
             <button
-              className={mode === "experiment" ? "selected" : ""}
+              className={"mode-experiment " + (mode === "experiment" ? "selected" : "")}
               onClick={() => {
                 setMode("experiment");
                 setPane("visual");
@@ -869,7 +868,12 @@ export default function LearningWorkspace(p: Props) {
               position={position}
               onPosition={setPosition}
               playbackContext={`${pane}:${mode}:${visualFocus}:${thinking}:${flow.busy}`}
-            />
+              onAsk={(text, stepIndex) => {
+                const details = lesson.index === 0 ? `文字：${options.text.slice(0,12)}${options.text.length>12?"…":""}` : lesson.index < 6 ? `${lesson.index >= 2 ? options.fixed ? "修正示例 · " : "初始示例 · " : ""}参数${options.value}` : undefined;
+                setQuestionRequest(captureQuestion({ text, nonce: Date.now(), label: `${lesson.title} · 第${stepIndex + 1}步`, details, reference: { kind: "lesson", sceneId: scene.id, options, stepIndex } }));
+                setMobilePane("teach"); setVisualFocus(v => v + 1);
+              }}
+            >
             <details
               className="optional-course-check"
               open={extraPracticeOpen}
@@ -900,6 +904,7 @@ export default function LearningWorkspace(p: Props) {
                 <ArrowRight size={15} />
               </button>
             </div>
+            </LessonVisualization>
           </div>
           {mode === "replay" && (
             <ExecutionReplay

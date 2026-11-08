@@ -1,4 +1,4 @@
-/* 现代学习界面：开放的暖白底、单一品牌强调、真实任务优先；该层最后加载。 */
+/* 现代学习界面：统一基础配色；后续课堂与导航样式只处理各自组件。 */
 
 :root {
   --ground: #faf9f6;
@@ -8,7 +8,7 @@
   --text: #20242b;
   --ink: #20242b;
   --muted: #646a73;
-  --faint: #6b7078;
+  --faint: #626975;
   --border: #e3e5e8;
   --rule: #eceef0;
   --control: #cbd0d8;
@@ -312,7 +312,8 @@ input::placeholder,textarea::placeholder {
   color: #245dd8;
 }
 
-.app-shell input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),.app-shell textarea,.app-shell select {
+/* 密码框由外层统一绘制边框与焦点；通用输入样式不要在内部再画一层。 */
+.app-shell input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(:where(.password-field input)),.app-shell textarea,.app-shell select {
   border-color: #d9dde3;
   border-radius: 9px;
   background: #fff;
@@ -320,7 +321,7 @@ input::placeholder,textarea::placeholder {
   box-shadow: none;
 }
 
-.app-shell input:not([type="checkbox"]):not([type="radio"]):focus,.app-shell textarea:focus,.app-shell select:focus {
+.app-shell input:not([type="checkbox"]):not([type="radio"]):not(:where(.password-field input)):focus,.app-shell textarea:focus,.app-shell select:focus {
   border-color: #7399e6;
   background: #fff;
 }
@@ -565,7 +566,7 @@ input::placeholder,textarea::placeholder {
 
 .app-shell .resource-entry span {
   font-size: 12px;
-  color: #6c7480;
+  color: var(--muted);
   margin-top: 4px;
 }
 
@@ -725,7 +726,7 @@ input::placeholder,textarea::placeholder {
 
 .modern-daily-label {
   font-size: 11px;
-  color: #71757b;
+  color: var(--muted);
 }
 
 .app-shell .modern-daily-summary h2 {
@@ -738,7 +739,7 @@ input::placeholder,textarea::placeholder {
 
 .modern-daily-summary p {
   font-size: 13px;
-  color: #6b7179;
+  color: var(--muted);
   line-height: 1.8;
   max-width: 690px;
 }
@@ -1016,7 +1017,7 @@ input::placeholder,textarea::placeholder {
 .app-shell .course-level {
   font-size: 11px;
   background: #f1f2f4;
-  color: #687180;
+  color: #626975;
   border-radius: 5px;
   padding: 4px 7px;
 }
@@ -1153,7 +1154,7 @@ input::placeholder,textarea::placeholder {
   width: 30px;
   height: 30px;
   background: #f2f3f6;
-  color: #6c7686;
+  color: #5c697d;
   border-radius: 8px;
   font-size: 12px;
 }
@@ -1560,13 +1561,14 @@ input::placeholder,textarea::placeholder {
 
 .app-shell .modern-workspace .study-mode-tabs button {
   font-size: 12px;
-  color: #69788d;
+  color: #5f6f85;
   padding: 8px 0;
   border-radius: 0;
   min-height: 36px;
 }
 
-.app-shell .modern-workspace .study-mode-tabs button.active {
+/* 工作区使用 selected 表示当前页签，与组件状态保持同名。 */
+.app-shell .modern-workspace .study-mode-tabs button.selected {
   color: #245dd8;
   border-color: #245dd8;
   background: transparent;
@@ -1597,6 +1599,11 @@ input::placeholder,textarea::placeholder {
 
 .app-shell .modern-workspace .cm-editor,.app-shell .modern-workspace .cm-scroller,.app-shell .modern-workspace .cm-gutters {
   background: #23262d!important;
+}
+
+/* 正式代码与错误实验共用可读的行号，覆盖编辑器主题各自的弱对比默认色。 */
+.app-shell .modern-workspace .cm-gutters {
+  color: #a8b8cd!important;
 }
 
 .app-shell .modern-workspace .live-evidence {
@@ -1702,7 +1709,13 @@ input::placeholder,textarea::placeholder {
 
 .app-shell .modern-workspace .error-lab header p {
   font-size: 13px;
-  color: #6c788b;
+  color: #5f7086;
+}
+
+.app-shell .modern-workspace .error-lab header > span,
+.app-shell .modern-workspace .experiment-run small {
+  color: #5f7086;
+  font-size: 12px;
 }
 
 .app-shell .modern-workspace .experiment-tools button {
@@ -1798,7 +1811,7 @@ input::placeholder,textarea::placeholder {
 }
 
 .prediction-comparison-form summary {
-  color: #647b9e;
+  color: #536c8e;
   cursor: pointer;
   min-height: 26px;
 }
@@ -1876,8 +1889,64 @@ input::placeholder,textarea::placeholder {
   color: #27364e;
 }
 
-.account-dialog .account-tabs {
+.account-dialog .auth-tabs,
+.account-dialog .account-section-tabs {
+  background: transparent;
   border-bottom: 1px solid #e4e8ee;
+  border-radius: 0;
+  padding: 0;
+}
+
+.account-dialog :is(.auth-tabs,.account-section-tabs) > button {
+  position: relative;
+  color: #646a73;
+  font-size: 13px;
+  min-height: 40px;
+  padding: 9px 3px 12px;
+  border: 0;
+}
+
+.account-dialog :is(.auth-tabs,.account-section-tabs) > button.selected {
+  color: #245dd8;
+  font-weight: 600;
+}
+
+.account-dialog :is(.auth-tabs,.account-section-tabs) > button.selected::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 -1px;
+  height: 2px;
+  background: #245dd8;
+}
+
+.account-dialog .password-field {
+  background: #fff;
+  border: 1px solid #d6dce6;
+  border-radius: 9px;
+}
+
+.account-dialog .password-field > input {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+  min-height: 0;
+}
+
+.account-dialog .password-field > input:focus {
+  outline: none;
+  background: transparent;
+}
+
+.account-dialog .password-field:focus-within {
+  outline: 2px solid #89a8ec;
+  outline-offset: 1px;
+  border-color: #7399e6;
+}
+
+.account-dialog .account-field input::placeholder {
+  color: #626d7b;
+  font-size: 13px;
 }
 
 .app-shell .help-modal h2 {
@@ -1888,6 +1957,11 @@ input::placeholder,textarea::placeholder {
   font-size: 14px;
   line-height: 1.9;
   color: #69768a;
+}
+
+.app-shell .help-steps span {
+  color: #626d7b;
+  font-size: 12px;
 }
 
 .app-shell .search-result {
@@ -1909,18 +1983,6 @@ input::placeholder,textarea::placeholder {
   background: #fff1e9;
   color: #8e5736;
   font-size: 12px;
-}
-
-.app-shell .discovery-page {
-  max-width: 1180px;
-}
-
-.app-shell .discovery-page>h1 {
-  margin-bottom: 10px;
-}
-
-.app-shell .discovery-page>.page-description {
-  margin-bottom: 26px;
 }
 
 @media(min-width:1101px) {

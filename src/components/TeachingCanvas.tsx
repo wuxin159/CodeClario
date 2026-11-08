@@ -188,6 +188,7 @@ export default function TeachingCanvas({
   reduced = false,
   compactView = false,
   onInspect,
+  onAsk,
 }: {
   lesson: Lesson;
   scene: Scene;
@@ -195,6 +196,7 @@ export default function TeachingCanvas({
   reduced?: boolean;
   compactView?: boolean;
   onInspect?: () => void;
+  onAsk?: (text:string) => void;
 }) {
   const spec = visualLesson(lesson),
     state = lessonVisualState(scene, time),
@@ -213,7 +215,7 @@ export default function TeachingCanvas({
   );
   const atEnd = index === scene.steps.length - 1;
   useEffect(() => setInspection(""), [scene.id, index]);
-  if (spec.kind === "bubble") return <div className="teaching-canvas bubble-lesson-canvas" data-visual-kind="bubble" data-lesson={lesson.id} data-step={index} data-playhead={time.toFixed(4)}><BubbleSortDiagram scene={scene} time={time} reduced={reduced} onInspect={onInspect}/></div>;
+  if (spec.kind === "bubble") return <div className="teaching-canvas bubble-lesson-canvas" data-visual-kind="bubble" data-lesson={lesson.id} data-step={index} data-playhead={time.toFixed(4)}><BubbleSortDiagram scene={scene} time={time} reduced={reduced} onInspect={onInspect} onAsk={onAsk}/></div>;
   const choose = (text: string) => {
     onInspect?.();
     setInspection(text);

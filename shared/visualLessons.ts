@@ -145,7 +145,7 @@ const special: Record<string, VisualLesson> = {
   },
   "c-12": {
     kind: "scope",
-    question: "函数改了形参，调用方的n为什么没变？",
+    question: "函数返回了新值，调用方的n为什么还没变？",
     insight: "传入的是值的副本。返回结果和显式写回，是另外两个动作。",
     legend: "调用方 / 形参副本 / 返回结果",
   },

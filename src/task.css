@@ -1571,19 +1571,6 @@ input[type="range"] {
 .account-dialog {
   border: 1px solid var(--border);
 }
-.account-intro {
-  background: #1a356f !important;
-  color: #e7efff;
-}
-.account-intro p {
-  color: #a7bce9 !important;
-}
-.account-intro h2 {
-  color: #fff;
-}
-.account-intro svg {
-  color: #91adf8;
-}
 .account-submit {
   background: var(--accent) !important;
 }

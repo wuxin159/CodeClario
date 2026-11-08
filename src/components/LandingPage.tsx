@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowRight, ArrowUpRight, ChevronDown, Expand, Menu, Pause, Play, X } from "lucide-react";
 import BrandIdentity from "./BrandIdentity";
-import DiscoveryExperience from "./DiscoveryExperience";
 import BubbleSortShowcase from "./BubbleSortShowcase";
 import { languages, lessons, type Language } from "../../shared/curriculum";
 
@@ -13,14 +12,14 @@ const screens = [
 ];
 const faqs = [
   ["完全没有编程基础，也可以开始吗？", "可以。点击“零基础？从第一课开始”，从输出、变量与条件逐步学习。学过for循环和数组或列表，再进入冒泡排序综合实践；首页也可以先观察动画，不需要安装开发工具。"],
-  ["图里的变化来自我的代码吗？", "首页流动光影是品牌视觉；小实验和课程会区分示例与真实运行。受支持的C、C++和Python程序可以查看执行状态；C/C++使用同代码、同输入的隔离调试回放，并核对普通运行输出。超出采集范围时，普通运行结果仍然保留。"],
+  ["图里的变化来自我的代码吗？", "首页排序动画是课程示例；课程中会区分示例与真实运行。受支持的C、C++和Python程序可以查看执行状态；C/C++使用同代码、同输入的隔离调试回放，并核对普通运行输出。超出采集范围时，普通运行结果仍然保留。"],
   ["AI会直接帮我把答案写完吗？", "老师结合你的判断和实际结果解释、追问或引导观察。你可以自己修改和验证，也可以主动请求帮助。看过参考或接受帮助后的作答会保留相应标记。"],
-  ["需要注册才能试用吗？", "首页排序演示无需登录。下方的对照实验也能直接体验，登录后可保存那次实验记录；课程中的代码草稿、真实运行和作答记录会分别保存。"],
+  ["需要注册才能试用吗？", "首页冒泡排序演示无需登录，可以切换语言和数据、暂停或单步观察。登录后进入课程，代码草稿、真实运行和作答记录会分别保存。"],
 ];
 const clamp = (value: number) => Math.min(1, Math.max(0, value));
 
-export default function LandingPage({ authenticated, accountLoading = false, startingLesson = false, userId, onEnter, onExploreContinue, onStartLesson }: {
-  authenticated: boolean; accountLoading?: boolean; startingLesson?: boolean; userId?: string; onEnter: () => void; onExploreContinue?: () => void; onStartLesson?: (lessonId: string) => void;
+export default function LandingPage({ authenticated, accountLoading = false, startingLesson = false, onEnter, onStartLesson }: {
+  authenticated: boolean; accountLoading?: boolean; startingLesson?: boolean; onEnter: () => void; onStartLesson?: (lessonId: string) => void;
 }) {
   const [menu, setMenu] = useState(false);
   const [homeLanguage, setHomeLanguage] = useState<Language>("python");
@@ -153,7 +152,7 @@ export default function LandingPage({ authenticated, accountLoading = false, sta
         <a className="cine-brand" href="#home" aria-label="代码灵 CodeClario 网站主页"><BrandIdentity /></a>
         <nav aria-label="网站导航" className={menu ? "is-open" : ""}>
           <a href="#home/preview" onClick={() => setMenu(false)}>学习方式</a>
-          <a href="#home/try" onClick={() => setMenu(false)}>亲手体验</a>
+          <a href="#home/demo" onClick={() => setMenu(false)}>排序演示</a>
           <a href="#home/courses" onClick={() => setMenu(false)}>课程</a>
           <a href="#home/faq" onClick={() => setMenu(false)}>常见问题</a>
         </nav>
@@ -174,7 +173,7 @@ export default function LandingPage({ authenticated, accountLoading = false, sta
             <p className="cine-hero-description cine-hero-enter">从一段冒泡排序开始，看懂循环与数组怎样配合。<br/>跟着AI的引导，动手修改，再验证自己的理解。</p>
             <div className="cine-actions cine-hero-enter">
               <button className="cine-button cine-button-light" onClick={() => onStartLesson ? onStartLesson(`${homeLanguage}-19`) : onEnter()} disabled={accountLoading || startingLesson}>{startingLesson ? "正在进入课程…" : "从这一课开始"}<ArrowRight size={18}/></button>
-              <a className="cine-text-action" href="#home/try">体验AI引导<ArrowUpRight size={17}/></a>
+              <a className="cine-text-action" href="#home/demo">观察排序过程<ArrowUpRight size={17}/></a>
             </div>
             <p className="cine-course-note">适合已学过for循环与数组的你<br/><button onClick={() => onStartLesson ? onStartLesson(`${homeLanguage}-1`) : onEnter()} disabled={accountLoading || startingLesson}>零基础？从第一课开始<ArrowUpRight size={12}/></button></p>
           </div>
@@ -184,7 +183,7 @@ export default function LandingPage({ authenticated, accountLoading = false, sta
       </section>
 
       <div className="cine-opening-bottom cine-wide">
-        <a className="cine-scroll" href="#home/try"><ArrowDown size={17}/><span>往下，亲手验证一次</span></a>
+        <a className="cine-scroll" href="#home/preview"><ArrowDown size={17}/><span>看看如何学习</span></a>
         <p>C / C++ / Python<span>·</span>{lessons.length}节基础课程</p>
         <button className="cine-motion-control" aria-pressed={motionOff} disabled={systemReduced} onClick={() => setPaused(!paused)} title={systemReduced ? "系统已启用减少动态效果" : undefined}>
           {motionOff ? <Play size={14}/> : <Pause size={14}/>}
@@ -194,15 +193,6 @@ export default function LandingPage({ authenticated, accountLoading = false, sta
     </div>
 
     <div className="cine-main-content">
-      <section className="cine-try" id="home/try" aria-labelledby="try-title">
-        <div className="cine-try-intro cine-wide"><div><h2 id="try-title" data-reveal>别急着相信解释。<br/>亲手验证一次。</h2></div><p data-reveal>先说出你的预期，再让程序运行。<br/>在差异出现的地方，找到真正的问题。</p></div>
-        <div className="cine-try-experience cine-wide">
-          {/* 始终挂载同一个实验实例；展示动画和图片切换不重建用户尚未提交的判断。 */}
-          <DiscoveryExperience compact userId={userId} disabled={accountLoading} onContinue={onExploreContinue??onEnter}/>
-        </div>
-        <div className="cine-try-method cine-wide"><p data-reveal><b>先表达</b><span>说出预期，也可以承认不确定。</span></p><p data-reveal><b>再比较</b><span>用真实结果，核对自己的判断。</span></p><p data-reveal><b>换个例子</b><span>把新的理解，再独立用一次。</span></p></div>
-      </section>
-
       <section ref={unfold} className="cine-unfold" id="home/preview" aria-labelledby="unfold-title">
         <div className="cine-section-head cine-wide">
 
@@ -272,7 +262,7 @@ export default function LandingPage({ authenticated, accountLoading = false, sta
       </section>
 
       <section className="cine-close">
-        <div className="cine-wide"><div><h2 data-reveal>下一次“原来如此”，<br/>从这里开始。</h2></div><a className="cine-button cine-button-light" href="#home/try">亲手试一试<ArrowRight size={20}/></a></div>
+        <div className="cine-wide"><div><h2 data-reveal>下一次“原来如此”，<br/>从这里开始。</h2></div><button className="cine-button cine-button-light" onClick={onEnter} disabled={accountLoading}>开始学习<ArrowRight size={20}/></button></div>
       </section>
       <footer className="cine-footer cine-wide"><a className="cine-brand" href="#home" aria-label="代码灵 CodeClario 返回顶部"><BrandIdentity/></a><p>让代码看得见，让学习有方向。</p><span>C17 · C++17 · Python 3</span></footer>
     </div>

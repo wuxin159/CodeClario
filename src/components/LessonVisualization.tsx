@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode, type CSSProperties } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -13,6 +13,11 @@ import { visualLesson } from "../../shared/visualLessons";
 import { useScenePlayback } from "../hooks/useScenePlayback";
 import TeachingCanvas from "./TeachingCanvas";
 import MotionSource from "./MotionSource";
+import ConceptStage, { hasConceptStage } from "./ConceptStage";
+import BubbleSwapDetail from "./BubbleSwapDetail";
+import CourseConceptScene from "./course-scenes/CourseConceptScene";
+import ConceptExploreDialog from "./ConceptExploreDialog";
+import { conceptWalk, contrastForLesson } from "../../shared/conceptExplorations";
 
 export default function LessonVisualization({
   lesson,
@@ -22,6 +27,8 @@ export default function LessonVisualization({
   position,
   onPosition,
   playbackContext,
+  onAsk,
+  children,
 }: {
   lesson: Lesson;
   scene: Scene;
@@ -30,6 +37,8 @@ export default function LessonVisualization({
   position: number;
   onPosition: (n: number) => void;
   playbackContext: string;
+  onAsk?: (question: string, stepIndex: number) => void;
+  children?: ReactNode;
 }) {
   const [reduced, setReduced] = useState(
     () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
@@ -58,6 +67,10 @@ export default function LessonVisualization({
   }, [scene.id]);
   const frame = sceneFrame(scene, playback.time);
   const visual = visualLesson(lesson);
+  const [sourceShare, setSourceShare] = useState(scene.code.split("\n").length <= 6 ? 33 : 42);
+  const [showSource, setShowSource] = useState(true);
+  const [exploration, setExploration] = useState<"walk"|"contrast">();
+  const ask = onAsk ? (question: string) => { playback.seek(frame.index); onAsk(question, frame.index); } : undefined;
   const [parameterText, setParameterText] = useState(String(options.value));
   useEffect(() => setParameterText(String(options.value)), [options.value]);
   const commitParameter = (text: string) => {
@@ -78,6 +91,13 @@ export default function LessonVisualization({
   const last = scene.steps.length - 1;
   const destination = frame.progress > 0.001 ? frame.index + 2 : undefined;
   const stepLabel = `${frame.index + 1}${destination ? ` → ${destination}` : ""} / ${scene.steps.length}`;
+  const revealStage = () => {
+    const node=stage.current,reader=node?.closest<HTMLElement>(".lesson-reading-pane");
+    if(!node||!reader||!reader.clientHeight)return;
+    const a=node.getBoundingClientRect(),b=reader.getBoundingClientRect();
+    // 底栏始终可见；从补充说明开始播放时先带回主图，避免不可见的播放继续推进。
+    if(a.bottom<=b.top||a.top>=b.bottom)reader.scrollTop+=a.top-b.top;
+  };
   return (
     <section
       className={`lesson-visualization motion-visualization ${reduced ? "reduced" : ""}`}
@@ -86,7 +106,7 @@ export default function LessonVisualization({
       tabIndex={0}
       onKeyDown={(e) => {
         if (
-          (e.target as HTMLElement).closest("input,select,textarea,button,pre")
+          (e.target as HTMLElement).closest("input,select,textarea,button,pre,summary,dialog,[role=dialog],[role=separator]")
         )
           return;
         if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
@@ -100,11 +120,12 @@ export default function LessonVisualization({
         }
       }}
     >
+      <div className="lesson-reading-pane">
       <div className="visual-heading">
         <div>
           <h2 title={scene.title}>{visual.question}</h2>
         </div>
-        <span className="visual-step-number">{stepLabel}</span>
+        <div className="classroom-visual-actions"><span className="visual-step-number">{stepLabel}</span><button aria-pressed={showSource} onClick={()=>setShowSource(v=>!v)}>{showSource?"收起代码":"显示代码"}</button>{ask && <button onClick={() => ask(`请结合当前课程示例第${frame.index + 1}步，讲讲「${frame.from.phase}」为什么这样变化。`)}>问问这一步</button>}</div>
       </div>
       <p className="visual-provenance">
         课程示例 · 用固定代码与图形讲解本节概念
@@ -170,6 +191,69 @@ export default function LessonVisualization({
           )}
         </div>
       )}
+      <div ref={stage} className={`motion-stage ${showSource?"":"source-collapsed"}`} style={{"--source-width":`${sourceShare}%`} as CSSProperties} role="group" aria-label="示例代码与动画">
+        <div className="classroom-source-wrap" hidden={!showSource}>
+        <MotionSource
+          code={scene.code}
+          fromLine={frame.from.line}
+          toLine={frame.to.line}
+          progress={reduced ? 0 : frame.progress}
+          reduced={reduced}
+          language={
+            lesson.language === "python"
+              ? "Python"
+              : lesson.language === "cpp"
+                ? "C++"
+                : "C"
+          }
+        />
+        </div>
+        {showSource&&<div className="lesson-splitter" role="separator" tabIndex={0} aria-label="调整代码与图形宽度" aria-orientation="vertical" aria-valuemin={25} aria-valuemax={55} aria-valuenow={sourceShare}
+          onPointerDown={e=>{e.currentTarget.setPointerCapture(e.pointerId);e.preventDefault();}}
+          onPointerMove={e=>{if(!e.currentTarget.hasPointerCapture(e.pointerId)||!stage.current)return;const rect=stage.current.getBoundingClientRect();setSourceShare(Math.round(Math.max(25,Math.min(55,(e.clientX-rect.left)/rect.width*100))));}}
+          onPointerUp={e=>{if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}}
+          onKeyDown={e=>{if(e.key!=="ArrowLeft"&&e.key!=="ArrowRight")return;e.preventDefault();e.stopPropagation();setSourceShare(v=>Math.max(25,Math.min(55,v+(e.key==="ArrowLeft"?-2:2))));}}
+        />}
+        {hasConceptStage(lesson) ? <ConceptStage lesson={lesson} scene={scene} time={playback.time} reduced={reduced} onInspect={() => playback.seek(frame.index)} onAsk={ask}/> : lesson.topic !== "bubble-sort" ? <CourseConceptScene lesson={lesson} scene={scene} time={playback.time} reduced={reduced} onInspect={() => playback.seek(frame.index)} onAsk={ask}/> : <TeachingCanvas
+          lesson={lesson}
+          scene={scene}
+          time={playback.time}
+          reduced={reduced}
+          onInspect={() => playback.seek(frame.index)}
+          onAsk={ask}
+        />}
+      </div>
+      <div className="motion-step-caption">
+        <span className="scene-phase">{frame.from.phase}</span>
+        <p aria-live={playback.playing ? "off" : "polite"}>{frame.from.note}</p>
+      </div>
+      {(conceptWalk(lesson.id)||contrastForLesson(lesson.id))&&<div className="lesson-explore-actions">{conceptWalk(lesson.id)&&<button onClick={()=>{playback.seek(frame.index);setExploration("walk");}}>拆开看关键动作</button>}{contrastForLesson(lesson.id)&&<button onClick={()=>{playback.seek(frame.index);setExploration("contrast");}}>换个条件做对照</button>}</div>}
+      {lesson.topic === "bubble-sort" && <BubbleSwapDetail scene={scene} time={playback.time} onInspect={() => playback.seek(frame.index)}/>}
+      <div className="scene-output motion-output">
+        <span>已完成语句的输出</span>
+        <pre>{frame.from.output || "（尚无输出）"}</pre>
+      </div>
+      <details className="visual-concept-explanation">
+        <summary>这幅图说明什么</summary>
+        <p>{visual.insight}</p>
+        <p>
+          点击数据卡可暂停并查看含义。数值使用本课示例快照，拖动时间轴可以往返检查。
+        </p>
+      </details>
+      <div className="visual-footer">
+        <span>可随时暂停、拖动时间轴，或用左右键逐步查看</span>
+        <label>
+          <input
+            type="checkbox"
+            checked={reduced}
+            onChange={(e) => setReduced(e.target.checked)}
+          />
+          减少动效
+        </label>
+      </div>
+      {exploration&&<ConceptExploreDialog lessonId={lesson.id} mode={exploration} onClose={()=>setExploration(undefined)}/>}
+      {children}
+      </div>
       <div className="visual-transport motion-transport">
         <div className="visual-controls">
           <button
@@ -188,7 +272,7 @@ export default function LessonVisualization({
             <ChevronLeft size={16} />
             上一步
           </button>
-          <button className="play-scene" onClick={playback.toggle}>
+          <button className="play-scene" onClick={()=>{if(!playback.moving)revealStage();playback.toggle();}}>
             {playback.moving ? <Pause size={15} /> : <Play size={15} />}{" "}
             {playback.moving ? "暂停" : reduced ? "继续一步" : "播放"}
           </button>
@@ -270,55 +354,6 @@ export default function LessonVisualization({
           </span>
           <span>{Math.round((playback.time / Math.max(1, last)) * 100)}%</span>
         </div>
-      </div>
-      <div ref={stage} className="motion-stage" role="group" aria-label="示例代码与动画">
-        <MotionSource
-          code={scene.code}
-          fromLine={frame.from.line}
-          toLine={frame.to.line}
-          progress={reduced ? 0 : frame.progress}
-          reduced={reduced}
-          language={
-            lesson.language === "python"
-              ? "Python"
-              : lesson.language === "cpp"
-                ? "C++"
-                : "C"
-          }
-        />
-        <TeachingCanvas
-          lesson={lesson}
-          scene={scene}
-          time={playback.time}
-          reduced={reduced}
-          onInspect={() => playback.seek(frame.index)}
-        />
-      </div>
-      <div className="motion-step-caption">
-        <span className="scene-phase">{frame.from.phase}</span>
-        <p aria-live={playback.playing ? "off" : "polite"}>{frame.from.note}</p>
-      </div>
-      <div className="scene-output motion-output">
-        <span>已完成语句的输出</span>
-        <pre>{frame.from.output || "（尚无输出）"}</pre>
-      </div>
-      <details className="visual-concept-explanation">
-        <summary>这幅图说明什么</summary>
-        <p>{visual.insight}</p>
-        <p>
-          点击数据卡可暂停并查看含义。数值使用本课示例快照，拖动时间轴可以往返检查。
-        </p>
-      </details>
-      <div className="visual-footer">
-        <span>可随时暂停、拖动时间轴，或用左右键逐步查看</span>
-        <label>
-          <input
-            type="checkbox"
-            checked={reduced}
-            onChange={(e) => setReduced(e.target.checked)}
-          />
-          减少动效
-        </label>
       </div>
     </section>
   );
