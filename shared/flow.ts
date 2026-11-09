@@ -1,4 +1,5 @@
 import type { SceneOptions } from "./scenes.ts";
+import type {DiagnosticObservation} from "./diagnostics.ts";
 export type TeachingViewContext =
   | {
       kind: "lesson";
@@ -66,6 +67,9 @@ export type Comparison = {
   reason?: string;
 };
 export type TeachingDecision = {
+  policyVersion?:string;
+  diagnostics?:DiagnosticObservation[];
+  toolTrace?:{label:string;automatic:boolean;ok:boolean}[];
   introduction?: { why: string; goal: string };
   action: "ask" | "explain" | "visualize" | "retest" | "continue";
   title: string;
@@ -110,6 +114,7 @@ export type LearningTask = {
   missionId?: string;
   parentTaskId?: string;
   introductionVersion?: string;
+  foundation?: { policy: string; explained: boolean; responded: boolean };
   viewContext?: TeachingViewContext;
   practicePassed?: boolean;
   retestAvailable?: boolean;

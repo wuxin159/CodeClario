@@ -261,6 +261,7 @@ export function useTeachingFlow({
     },
     setError,
     enter: () => analyze("entry", {}, null),
+    beginPractice: () => analyze("practice", {}, stale ? null : task),
     observeExperiment: (viewContext: TeachingViewContext) =>
       analyze("experiment", { viewContext }, stale ? null : task),
     discuss: (answer: string, viewContext?: TeachingViewContext) =>

@@ -11,6 +11,7 @@ import { MissionStore } from "./missions.ts";
 import type { Mission } from "../shared/mission.ts";
 import type { DailyPlan, DailySnapshot, DailyStep } from "../shared/daily.ts";
 import { statedDailyMinutes } from "../shared/dailyBudget.ts";
+import {assertNoCredentials,learningRequestBoundary} from "./aiSafety.ts";
 const internalText = (text: string) =>
   /\b(history|candidates|schema|courseReview|phase|budget|evidence)\b|(?:c|cpp|python)-\d+|候选|新手规则|校验规则|不评价能力/i.test(
     text,
@@ -130,6 +131,8 @@ export function dailyRoutes(store: LearningDatabase) {
     requireMatchingAccount,
     async (req, res, next) => {
       try {
+        assertNoCredentials(JSON.stringify(req.body));
+        const boundary=learningRequestBoundary(String(req.body.message??""));if(boundary)throw new AccountError(400,boundary);
         const uid = req.user!.id,
           tz = req.body.timeZone ?? "Asia/Singapore",
           day = localDay(tz),

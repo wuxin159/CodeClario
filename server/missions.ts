@@ -4,6 +4,7 @@ import { randomUUID, createHash } from "node:crypto";
 import { requireAccount, requireMatchingAccount } from "./accounts.ts";
 import { AccountError, type LearningDatabase } from "./database.ts";
 import { aiConfig } from "./ai.ts";
+import {assertNoCredentials,learningRequestBoundary} from "./aiSafety.ts";
 import { FlowStore } from "./flow.ts";
 import { findLesson, lessons } from "../shared/curriculum.ts";
 import { teachingPlan } from "../shared/teaching.ts";
@@ -329,6 +330,8 @@ export function missionRoutes(store: LearningDatabase) {
       }
       let controller: AbortController | undefined;
       try {
+        assertNoCredentials(JSON.stringify(req.body));
+        const boundary=learningRequestBoundary(String(req.body.goal?.aim??""));if(boundary)throw new AccountError(400,boundary);
         const previous = missions.active(uid),
           advance = req.body.advance === true;
         if (advance && (!previous || previous.id !== req.body.missionId)) {

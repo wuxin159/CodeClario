@@ -6,6 +6,7 @@ import { teachingPlan } from "../shared/teaching.ts";
 import type { LearningDatabase } from "./database.ts";
 import { teachingSkills } from "./skills.ts";
 import { aiConfig } from "./ai.ts";
+import {assertNoCredentials,learningRequestBoundary} from "./aiSafety.ts";
 
 let activeAi = 0;
 // A model may write a step link instead of calling the action. Interpret only
@@ -56,6 +57,8 @@ export const coachingHandler =
       res.status(400).json({ error: "学习请求格式不正确。" });
       return;
     }
+    try {assertNoCredentials(code+"\n"+stdin+"\n"+question);const boundary=learningRequestBoundary(question);if(boundary){res.status(400).json({error:boundary});return;}}
+    catch(e){res.status(400).json({error:(e as Error).message});return;}
     const plan = teachingPlan(lesson);
     const attempt =
       typeof attemptId === "string"

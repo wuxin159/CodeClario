@@ -16,6 +16,8 @@ import "./classroom.css";
 import "./course-scenes.css";
 import "./classroom-polish.css";
 import "./navigation.css";
+import "./learning-journey.css";
+import "./ai-learning.css";
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

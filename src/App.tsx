@@ -202,7 +202,7 @@ export default function App() {
       location.hash = page === "lab" ? `lab/${lessonId}` : page;
     document.title =
       page === "home"
-        ? "代码灵 · CodeClario｜看见执行，学懂代码"
+        ? "代码灵 · CodeClario｜看见执行 学懂代码"
         : `${page === "lab" ? currentLesson.title : navItems.find((item) => item.id === page)!.title} | 代码灵 · CodeClario`;
   }, [page, lessonId]);
   useEffect(() => {
@@ -386,7 +386,6 @@ export default function App() {
           </span>
         </a>
         <div className="sidebar-scroll" role="region" aria-label="课程导航与学习概览" tabIndex={0}>
-          <div className="sidebar-label">你的学习空间</div>
           <nav aria-label="主导航">
             {navItems.map((item) => (
               <button

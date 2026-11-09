@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -45,7 +45,8 @@ import { useTeachingFlow } from "../hooks/useTeachingFlow";
 import TeachingConversation from "./TeachingConversation";
 import LiveEvidence from "./LiveEvidence";
 import ErrorLab from "./ErrorLab";
-import PredictionComparison from "./PredictionComparison";
+import LessonGuide from "./LessonGuide";
+import ConsoleResizeHandle from "./ConsoleResizeHandle";
 import { captureQuestion, type TeachingQuestionRequest } from "./teachingQuestion";
 import type { TeachingViewContext } from "../../shared/flow";
 import { lessonIntroduction } from "../../shared/lessonIntroduction";
@@ -108,10 +109,25 @@ export default function LearningWorkspace(p: Props) {
     "code",
   );
   const [mode, setMode] = useState<"visual" | "code" | "replay" | "experiment">(
-    "visual",
+    () => {
+      // 只恢复同账户同课程的阅读位置；不把页签偏好当作学习进度或通过证据。
+      try {
+        const saved=userId&&sessionStorage.getItem(`codeclario:view:${userId}:${lesson.id}`);
+        if(saved==="code"||saved==="replay"||saved==="experiment")return saved;
+      } catch { /* 浏览器禁用存储时仍可正常上课。 */ }
+      return "visual";
+    },
   );
-  const [mobilePane, setMobilePane] = useState<"teach" | "code" | "observe">("teach");
+  const [mobilePane, setMobilePane] = useState<"teach" | "code" | "observe">(mode==="code"||mode==="experiment"?"code":mode==="replay"?"observe":"teach");
+  useEffect(()=>{
+    if(userId)try{sessionStorage.setItem(`codeclario:view:${userId}:${lesson.id}`,mode);}catch{/* 页签偏好不影响课程保存。 */}
+  },[mode,userId,lesson.id]);
   const [questionRequest, setQuestionRequest] = useState<TeachingQuestionRequest>();
+  function openPractice() {
+    setMode("code");setPane("code");setMobilePane("code");
+    // 程序事件负责衔接演示与练习，不伪造一条学生的聊天回答。
+    void flow.beginPractice();
+  }
   useEffect(() => {
     setMobilePane(current => current === "teach" ? current :
       mode === "code" || mode === "experiment" ? "code" : "observe");
@@ -229,6 +245,8 @@ export default function LearningWorkspace(p: Props) {
   const [consoleTab, setConsoleTab] = useState<"output" | "tests" | "input">(
     "output",
   );
+  const [consoleHeight,setConsoleHeight]=useState(180);
+  const consoleRef=useRef<HTMLDivElement>(null);
   const [solution, setSolution] = useState(false);
   const [reset, setReset] = useState(false);
   const [menu, setMenu] = useState(false);
@@ -446,9 +464,11 @@ export default function LearningWorkspace(p: Props) {
         .afterRun(data, code, stdin)
         .catch((e) => flow.setError(e.message));
       if (data.passed) {
-        setConsoleTab("tests");
         notify("样例通过。接着完成本次理解检验。");
       }
+      // 运行后先保留标准输出；样例结果在相邻页签查看，手机主动带到结果区。
+      if (!showAnimation && window.innerWidth <= 1000)
+        requestAnimationFrame(()=>consoleRef.current?.scrollIntoView({block:"nearest",behavior:"smooth"}));
     } catch (e) {
       if (!controller.signal.aborted) setRunError((e as Error).message);
     } finally {
@@ -513,7 +533,7 @@ export default function LearningWorkspace(p: Props) {
       // 在编辑器默认键位之前消费快捷键，并按当前模式分派，防止插空行或运行错代码。
       if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
         // 对话表单和概念探究弹窗有自己的提交语义，不能触发隐藏的主程序运行。
-        if ((event.target as HTMLElement).closest('.teacher-composer, .prediction-comparison, .study-coach, dialog, [role="dialog"]')) return;
+        if ((event.target as HTMLElement).closest('.teacher-composer, .study-coach, dialog, [role="dialog"]')) return;
         event.preventDefault();
         event.stopPropagation();
         if (mode === "experiment") experimentRun.current?.run();
@@ -614,8 +634,8 @@ export default function LearningWorkspace(p: Props) {
                   ? "自主选择的学习任务"
                   : "课程预览"}
           </small>
-          <h1>{activeMission?.title ?? lesson.title}</h1>
-          <p>{lesson.task}</p>
+          <h1>{lesson.title}</h1>
+          <div className="lesson-learning-goal"><span>本节目标</span><p>{lessonIntroduction(lesson).goal}</p></div>
         </div>
         <div className="workspace-purpose-actions">
           {!activeMission && <button className="button primary" disabled={adopting || p.missions.busy} onClick={async()=>{
@@ -823,9 +843,7 @@ export default function LearningWorkspace(p: Props) {
             <button
               className={"mode-code " + (mode === "code" ? "selected" : "")}
               onClick={() => {
-                setMode("code");
-                setMobilePane("code");
-                setPane("code");
+                openPractice();
               }}
             >
               <Code2 size={15} />
@@ -859,6 +877,7 @@ export default function LearningWorkspace(p: Props) {
                     : "真实编译运行"}
             </span>
           </div>
+          <LessonGuide lesson={lesson} mode={mode} onPractice={openPractice} onObserve={()=>{setMode("visual");setPane("visual");setMobilePane("observe");}}/>
           <div className="study-center-body" hidden={mode !== "visual"}>
             <LessonVisualization
               lesson={lesson}
@@ -895,9 +914,7 @@ export default function LearningWorkspace(p: Props) {
               </p>
               <button
                 onClick={() => {
-                  setMode("code");
-                  setMobilePane("code");
-                  setPane("code");
+                  openPractice();
                 }}
               >
                 编写与验证
@@ -931,15 +948,7 @@ export default function LearningWorkspace(p: Props) {
             />
             </div>
           )}
-          <div className="study-code-body" hidden={mode !== "code"}>
-            <PredictionComparison
-              prediction={!flow.stale ? flow.task?.prediction : undefined}
-              comparison={flow.task?.attemptId === result?.id && !flow.stale ? flow.task?.comparison : undefined}
-              result={result} stale={stale} revisionKey={lesson.id + "\0" + draft + "\0" + savedInput}
-              busy={running || flow.busy || flow.loading} loading={flow.loading}
-              hasRun={!!flow.task?.attemptId && !flow.stale}
-              onPredict={async(value)=>{await flow.predict({kind:"output",value});}}
-            />
+          <div className="study-code-body" hidden={mode !== "code"} style={{"--console-height":`${consoleHeight}px`} as CSSProperties}>
             <div className="study-editor-caption">
               <code>
                 main.{lesson.language === "python" ? "py" : lesson.language} ·{" "}
@@ -1053,7 +1062,8 @@ export default function LearningWorkspace(p: Props) {
                 {runError}
               </p>
             )}
-            <div className="study-console">
+            <ConsoleResizeHandle target={consoleRef} height={consoleHeight} onHeight={setConsoleHeight}/>
+            <div className="study-console" ref={consoleRef}>
               <div className="study-console-tabs">
                 {(
                   [
@@ -1064,10 +1074,12 @@ export default function LearningWorkspace(p: Props) {
                 ).map((t) => (
                   <button
                     key={t.id}
+                    aria-label={t.title}
                     className={consoleTab === t.id ? "selected" : ""}
                     onClick={() => setConsoleTab(t.id)}
                   >
                     {t.title}
+                    {t.id==="tests"&&result&&<span className="console-test-count">{result.tests.filter(test=>test.passed).length}/{result.tests.length}</span>}
                   </button>
                 ))}
                 {result && (

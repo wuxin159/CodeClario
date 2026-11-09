@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   BookOpen,
@@ -23,6 +23,7 @@ export const phaseNames = {
   retest: "独立检验",
   ready: "本次验证完成",
 };
+export const timeGreeting = (hour: number) => hour >= 5 && hour < 11 ? "早上好" : hour >= 11 && hour < 14 ? "中午好" : hour >= 14 && hour < 18 ? "下午好" : "晚上好";
 export default function TaskHome({
   missions: m,
   user,
@@ -40,6 +41,14 @@ export default function TaskHome({
   onRecords: () => void;
   onRequireAuth: () => void;
 }) {
+  const [now,setNow]=useState(()=>new Date());
+  useEffect(()=>{
+    // 使用学习者设备的本地时间；跨时段、跨日或重新切回窗口时及时更新，不调用模型。
+    const refresh=()=>setNow(new Date()),onVisible=()=>{if(!document.hidden)refresh();};
+    const timer=window.setInterval(refresh,60000);
+    window.addEventListener("focus",refresh);document.addEventListener("visibilitychange",onVisible);
+    return()=>{clearInterval(timer);window.removeEventListener("focus",refresh);document.removeEventListener("visibilitychange",onVisible);};
+  },[]);
   const [editing, setEditing] = useState(false),
     [language, setLanguage] = useState<Language>("python"),
     [aim, setAim] = useState("从基础开始，学会独立读懂和修改代码"),
@@ -72,23 +81,15 @@ export default function TaskHome({
     <main className="page-content task-home modern-task-home">
       <div className="task-home-heading">
         <div>
-          <h1>{user ? user.displayName + (active ? "，接着学。" : "，从这里开始。") : "我的学习"}</h1>
-          <p>
-            {active
-              ? m.progress?.canAdvance
-                ? "这次练习已完成验证，可以继续下一项。"
-                : "接着上次的问题，完成这一次练习。"
-              : daily.plan
-                ? "AI已经准备好今天的安排，先从一小步开始。"
-                : "选择目标与起点，开始一项可验证的任务。"}
-          </p>
+          <h1>{user ? `${timeGreeting(now.getHours())}，${user.displayName}` : "我的学习"}</h1>
+          <p>{user ? "欢迎回到学习空间。" : "选择一门课程，开始今天的学习。"}</p>
         </div>
         <div className="modern-home-tools"><span className="home-date">
           {new Intl.DateTimeFormat("zh-CN", {
             month: "long",
             day: "numeric",
             weekday: "long",
-          }).format(new Date())}
+          }).format(now)}
         </span>{user && !m.loading && !m.configured && <button className="modern-connect-entry" onClick={openConnection}>连接AI老师<ArrowRight size={14}/></button>}</div>
       </div>
       {user && (

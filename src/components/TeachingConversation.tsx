@@ -16,16 +16,20 @@ import {
   Settings2,
   Square,
   X,
+  ImagePlus,
 } from "lucide-react";
 import type { Lesson } from "../../shared/curriculum";
 import type { TeachingDecision, TeachingViewContext, TeachingConversationEvent } from "../../shared/flow";
 import { teachingPlan } from "../../shared/teaching";
 import { lessonFoundation } from "../../shared/lessonFoundations";
+import { lessonIntroduction } from "../../shared/lessonIntroduction";
+import { readyForPrediction } from "../../shared/teachingSequence";
 import type { TeachingFlow } from "../hooks/useTeachingFlow";
 import type { Missions } from "../hooks/useMissions";
 import { useTeachingConversation } from "../hooks/useTeachingConversation";
 import TeachingText from "./TeachingText";
 import AIConnection from "./AIConnection";
+import ScreenshotQuestion from "./ScreenshotQuestion";
 import { captureQuestion, mergeQuestionDraft, questionContext, type TeachingQuestionRequest } from "./teachingQuestion";
 
 export function currentTeachingEvents(events: TeachingConversationEvent[], taskId?: string) {
@@ -74,6 +78,7 @@ export default function TeachingConversation({
     [saving, setSaving] = useState(false),
     [localError, setLocalError] = useState(""),
     [settings, setSettings] = useState(false),
+    [imageOpen,setImageOpen] = useState(false),
     [expandedHistory, setExpandedHistory] = useState(false),
     bottom = useRef<HTMLDivElement>(null),
     scroll = useRef<HTMLDivElement>(null),
@@ -133,6 +138,7 @@ export default function TeachingConversation({
     if (await m.advance()) onHome();
   };
   const predicting =
+    !!task && readyForPrediction(task) &&
     !questionReference &&
     !asQuestion &&
     !f.stale &&
@@ -246,6 +252,8 @@ export default function TeachingConversation({
           ))}
         </details>
       )}
+      {!!decision.toolTrace?.length&&<details className="teacher-tool-evidence"><summary>这次讲解用到的依据</summary>{decision.toolTrace.map((t,i)=><p key={i}>{t.automatic?"资料检索":"AI选择"} · {t.label}{t.ok?"":"（本次未完成）"}</p>)}</details>}
+      {decision.diagnostics?.map(item=><div className="teacher-diagnostic" key={item.id}><b>额外验证 · 不计成绩</b><p>{item.reason}</p><small>{item.title} · {item.reused?"已记录结果":"真实运行"}</small><pre>输入：{item.input}</pre><pre>输出：{item.stdout||"（无标准输出）"}</pre>{item.stderr&&<p>{item.stderr}</p>}<small>{item.matches===null?"本次执行未正常结束":item.matches?"这个输入符合任务要求，不代表全部通过":"这个输入仍不符合任务要求"}</small></div>)}
     </>
   );
   return (
@@ -277,16 +285,18 @@ export default function TeachingConversation({
           </span>
         </div>
         <div className="teacher-header-tools">
-        {compact && history.events.length > 2 && <button className="teacher-history-toggle" aria-label={expandedHistory ? "聚焦当前步骤" : "回看教学过程"} aria-expanded={expandedHistory} onClick={()=>setExpandedHistory(v=>!v)}>{expandedHistory ? "聚焦当前" : "教学记录"}</button>}
+        {userId&&<button className="teacher-image-toggle" aria-label="截图提问" aria-expanded={imageOpen} onClick={()=>{setImageOpen(v=>!v);setSettings(false);}}><ImagePlus size={16}/><span>截图</span></button>}
+        {!imageOpen && compact && history.events.length > 2 && <button className="teacher-history-toggle" aria-label={expandedHistory ? "聚焦当前步骤" : "回看教学过程"} aria-expanded={expandedHistory} onClick={()=>setExpandedHistory(v=>!v)}>{expandedHistory ? "聚焦当前" : "教学记录"}</button>}
         <button
           aria-label="教学设置"
           aria-expanded={settings}
-          onClick={() => setSettings(!settings)}
+          onClick={() => {setImageOpen(false);setSettings(!settings);}}
         >
           <Settings2 size={16} />
         </button>
         </div>
       </header>
+      {imageOpen&&userId?<ScreenshotQuestion key={`${userId}:${lesson.id}`} lesson={lesson} userId={userId} configured={f.configured} onConnect={()=>{setImageOpen(false);setSettings(true);}} onClose={()=>setImageOpen(false)}/>:<>
       {settings && (
         <div className="teacher-settings">
           <label>
@@ -377,11 +387,14 @@ export default function TeachingConversation({
         )}
         {!f.loading && !f.configured && !history.events.length && (
           <article className="teacher-message course-note">
-            <span>课程导读</span>
+            <span>从这里开始</span>
+            <p className="teacher-purpose"><b>为什么学这一节</b>{lessonIntroduction(lesson).why}</p>
+            <b>先弄懂一个基础</b>
             <p>{lessonFoundation(lesson)}</p>
+            <p><b>先观察</b>{lessonIntroduction(lesson).firstStep}</p>
             <p>
               建议先了解：{plan.prerequisites.join("、")}
-              。连接AI后，会结合你的代码逐步讲解和提问。
+              。连接AI后，老师会先讲基础，再逐步提问；你也可以先看演示。
             </p>
             <button onClick={() => setSettings(true)}>连接AI老师</button>
           </article>
@@ -777,6 +790,7 @@ export default function TeachingConversation({
           </button>
         </div>
       </div>
+      </>}
     </section>
   );
 }

@@ -16,6 +16,7 @@ import { dailyRoutes } from "./daily.ts";
 import { runSandbox, runnerImage } from "./runner.ts";
 import { experimentRoutes } from "./experiments.ts";
 import { discoveryRoutes } from "./discovery.ts";
+import { visionRoutes } from "./vision.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const store = new LearningDatabase(
@@ -32,7 +33,9 @@ const image = runnerImage;
 
 app.disable("x-powered-by");
 if (process.env.TRUST_PROXY === "loopback") app.set("trust proxy", "loopback");
-app.use(express.json({ limit: "640kb" }));
+const standardJson=express.json({limit:"640kb"});
+// 图片接口先验证登录与配额，再读取较大的请求体；其余接口保持原有限额。
+app.use((req,res,next)=>req.path==="/api/vision/analyze"?next():standardJson(req,res,next));
 app.use("/api", (req, res, next) => {
   // 反向代理应透传原 Host；浏览器来源不匹配时拒绝请求，不能为部署方便关闭此检查。
   const origin = req.headers.origin;
@@ -52,6 +55,7 @@ app.use(
   ),
 );
 app.use("/api", aiSettingsRoutes());
+app.use("/api", visionRoutes(store));
 app.use("/api", flowRoutes(store));
 app.use("/api", missionRoutes(store));
 app.use("/api", dailyRoutes(store));

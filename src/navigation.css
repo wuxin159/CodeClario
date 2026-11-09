@@ -28,17 +28,20 @@
   outline-offset: -2px;
 }
 
-.app-shell .sidebar-label {
-  margin-top: 0;
-}
-
 .app-shell .sidebar nav {
   gap: 4px;
 }
 
 .app-shell .sidebar-course {
+  margin-inline: 0;
+  padding-inline: 0;
   margin-top: 16px;
   padding-top: 12px;
+}
+
+.app-shell .sidebar-course > span {
+  display: block;
+  padding-left: 12px;
 }
 
 .app-shell .sidebar-scroll > .growth-card {

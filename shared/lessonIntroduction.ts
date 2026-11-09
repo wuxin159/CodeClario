@@ -169,6 +169,13 @@ const entries: Record<VisualKind, Entry> = {
 };
 export function lessonIntroduction(lesson: Lesson): Entry {
   const base = entries[visualLesson(lesson).kind];
+  if (lesson.id.endsWith("-8") && lesson.title.startsWith("while"))
+    return {
+      why: "重复处理一件事之前，程序需要判断是否还要继续。while让重复操作在合适的时候停下来。",
+      goal: "读懂“先判断、再执行、再更新”，解释循环为什么继续或停止。",
+      firstStep: "先看i=1时条件是否成立，再跟着一次累加和i的更新走完一轮。",
+      analogy: "每次取一个数之前先检查是否还有需要处理的数，取完后再前进一步。",
+    };
   if (lesson.id === "cpp-11")
     return {
       why: "希望函数直接修改调用方的变量时，可以把原对象的另一个名字交给它。",

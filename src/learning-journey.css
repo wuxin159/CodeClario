@@ -1,0 +1,100 @@
+/* 学习目标不随页签消失；编码任务只在实践引导中展示，避免把两者混成一个标题。 */
+.app-shell .learning-workspace.classroom-workspace .mission-workspace-header {
+  min-height:0; padding:10px 0; flex:none;
+}
+.app-shell .classroom-workspace .mission-workspace-header .lesson-learning-goal {
+  display:flex; align-items:baseline; gap:10px; margin-top:4px; min-width:0;
+}
+.app-shell .classroom-workspace .lesson-learning-goal > span {
+  flex:none; color:#245dd8; font-size:12px; font-weight:600;
+}
+.app-shell .classroom-workspace .mission-workspace-header .lesson-learning-goal > p {
+  display:block; margin:0; font-size:13px; line-height:1.6; color:#4d6079;
+}
+.lesson-guide { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:10px 18px; background:#f6f8fc; border-bottom:1px solid #e0e7f0; flex:none; }
+.lesson-guide > div { min-width:0; display:flex; align-items:baseline; gap:10px; }
+.lesson-guide b { flex:none; font-size:12px; font-weight:600; color:#335c95; }
+.lesson-guide p { font-size:13px; line-height:1.65; color:#35475f; margin:0; }
+.lesson-guide small { display:block; font-size:11px; color:#5e6f85; margin-top:3px; }
+.lesson-guide > button { display:inline-flex; align-items:center; gap:6px; flex:none; padding:7px 10px; min-height:34px; color:#245dd8; background:#eaf0fb; border:0; border-radius:6px; font-size:12px; cursor:pointer; }
+.teacher-purpose > b,.teacher-message.course-note p > b { display:block; color:#385b89; font-size:12px; margin-bottom:4px; }
+.console-test-count { font-size:11px; margin-left:5px; color:#b6ceff; font-variant-numeric:tabular-nums; }
+.console-resizer { height:12px; flex:0 0 12px; display:grid; place-items:center; background:#252b35; border-block:1px solid #3b4453; cursor:row-resize; touch-action:none; }
+.console-resizer > span { width:34px; height:3px; border-radius:2px; background:#8b9ab0; }
+.console-resizer:hover,.console-resizer:focus-visible { background:#33465f; outline-offset:-3px; }
+
+@media(min-width:1001px) {
+  /* 用整页剩余空间分配课堂高度，取消旧的固定编辑器高度挤压输出区。 */
+  .app-shell .learning-workspace.classroom-workspace {
+    height:calc(100dvh - 76px); min-height:0; display:flex; flex-direction:column;
+  }
+  .app-shell .learning-workspace.classroom-workspace > .learning-toolbar { flex:none; }
+  .app-shell .learning-workspace.classroom-workspace > .learning-grid {
+    flex:1 1 0; height:auto; min-height:0; margin:0;
+  }
+  .app-shell .learning-workspace.classroom-workspace .learning-grid > .study-center {
+    display:flex!important; flex-direction:column; height:100%; min-height:0; overflow:hidden;
+  }
+  .app-shell .learning-workspace.classroom-workspace .study-mode-tabs { position:static; flex:none; }
+  .app-shell .learning-workspace.classroom-workspace .study-center-body:not([hidden]) {
+    flex:1 1 0; height:auto; min-height:0; overflow:hidden;
+  }
+  .app-shell .learning-workspace.classroom-workspace .study-code-body:not([hidden]) {
+    flex:1 1 0; height:auto; min-height:0; overflow:hidden;
+  }
+  .app-shell .learning-workspace.classroom-workspace .study-editor-caption { flex:none; }
+  .app-shell .learning-workspace.classroom-workspace .task-code-observe {
+    flex:1 1 0; height:auto; min-height:0; max-height:none;
+  }
+  .app-shell .learning-workspace.classroom-workspace .task-code-observe .study-code-editor,
+  .app-shell .learning-workspace.classroom-workspace .task-code-observe .live-evidence {
+    height:100%; min-height:0; max-height:100%; overflow:auto;
+  }
+  .app-shell .learning-workspace.classroom-workspace .study-run-bar { position:static; flex:none; padding-block:7px; }
+  .app-shell .learning-workspace.classroom-workspace .study-console {
+    flex:0 0 var(--console-height,210px); height:var(--console-height,210px); min-height:160px; max-height:60%; display:flex; flex-direction:column; overflow:hidden;
+  }
+  .app-shell .learning-workspace.classroom-workspace .study-console-tabs { flex:none; min-height:40px; padding-inline:14px; }
+  .app-shell .learning-workspace.classroom-workspace .study-console > :not(.study-console-tabs) {
+    flex:1 1 0; min-height:0; height:auto; max-height:none; overflow:auto; padding:12px 14px;
+  }
+  .app-shell .learning-workspace.classroom-workspace .study-stdin { display:flex; flex-direction:column; gap:7px; }
+  .app-shell .learning-workspace.classroom-workspace .study-stdin textarea { flex:1; min-height:60px; height:auto; resize:none; }
+  .app-shell .learning-workspace.classroom-workspace .study-real-output pre { margin:8px 0 0; padding:10px; min-height:0; line-height:1.7; }
+  .app-shell .learning-workspace.classroom-workspace .study-empty-output { padding:14px; min-height:0; }
+  .app-shell .learning-workspace.classroom-workspace .compact-teaching .teacher-timeline { min-height:0; }
+  .app-shell .learning-workspace.classroom-workspace .execution-replay,
+  .app-shell .learning-workspace.classroom-workspace .error-lab { min-height:0; overflow:auto; }
+}
+/* 矮桌面把最终结果放到代码右侧，避免上下分区把编辑器压成一行；
+   逐步观察仍可从专门的回放页打开。 */
+@media(min-width:1001px) and (max-height:650px) {
+  .app-shell .learning-workspace.classroom-workspace[data-mode="code"] .study-code-body {
+    position:relative; padding-right:41%;
+  }
+  .app-shell .learning-workspace.classroom-workspace[data-mode="code"] .task-code-observe {
+    grid-template-columns:minmax(0,1fr);
+  }
+  .app-shell .learning-workspace.classroom-workspace[data-mode="code"] .task-code-observe .live-evidence,
+  .app-shell .learning-workspace.classroom-workspace[data-mode="code"] .console-resizer { display:none; }
+  .app-shell .learning-workspace.classroom-workspace[data-mode="code"] .study-console {
+    position:absolute; inset:0 0 0 auto; width:40%; height:100%; min-height:0; max-height:none; border-left:1px solid #3b4453;
+  }
+  .app-shell .learning-workspace.classroom-workspace[data-mode="code"] .study-console-tabs { flex-wrap:wrap; gap:0 10px; padding-inline:10px; }
+  .app-shell .learning-workspace.classroom-workspace[data-mode="code"] .study-console-tabs button { min-height:32px; }
+  .app-shell .learning-workspace.classroom-workspace[data-mode="code"] .study-run-bar { flex-wrap:wrap; gap:8px; }
+}
+@media(max-width:1000px) {
+  .lesson-guide { padding:10px 12px; gap:8px; }
+  .lesson-guide > div { display:block; }
+  .lesson-guide > button { min-height:44px; }
+  .lesson-guide small { font-size:12px; }
+  .console-resizer { display:none; }
+  .app-shell .learning-workspace.classroom-workspace .study-console { height:auto; min-height:220px; max-height:none; }
+  .app-shell .learning-workspace.classroom-workspace .study-console > :not(.study-console-tabs) { min-height:160px; max-height:360px; overflow:auto; }
+  .app-shell .learning-workspace.classroom-workspace .study-stdin textarea { min-height:110px; }
+  .app-shell .classroom-workspace .mission-workspace-header .lesson-learning-goal { display:block; }
+  .app-shell .classroom-workspace .mission-workspace-header .lesson-learning-goal p { font-size:13px; }
+  .app-shell .learning-workspace.classroom-workspace[data-mobile-pane="teach"] { min-height:0; height:auto; }
+  .app-shell .learning-workspace.classroom-workspace[data-mobile-pane="teach"] .learning-grid { min-height:440px; }
+}

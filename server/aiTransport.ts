@@ -1,9 +1,10 @@
+import {redactCredentials} from "./aiSafety.ts";
 // 只清理模型常见的 JSON 外壳，不执行返回内容；字段与教学动作仍由业务层校验。
 export function parseAIJSON(content: unknown) {
   if (typeof content !== "string")
     throw new Error("AI未返回完整的结构化内容。");
   return JSON.parse(
-    content
+    redactCredentials(content)
       .trim()
       .replace(/^\uFEFF/, "")
       .replace(/^```(?:json)?\s*/i, "")
@@ -14,10 +15,12 @@ export async function fetchAI(
   url: string,
   init: RequestInit,
 ): Promise<Response> {
+  // 历史记录或运行输出也可能带有凭据；仅清理模型请求体，绝不改动认证头。
+  const request={...init,body:typeof init.body==="string"?redactCredentials(init.body):init.body};
   // 将响应体也纳入有限重试，覆盖“收到响应头后断流”；取消信号仍必须立即生效。
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const response = await fetch(url, init),
+      const response = await fetch(url, request),
         bytes = await response.arrayBuffer();
       if (attempt < 2 && (response.status === 429 || response.status >= 500)) {
         await new Promise((r) =>

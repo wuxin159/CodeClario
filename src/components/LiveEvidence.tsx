@@ -32,15 +32,15 @@ export default function LiveEvidence({
     <section className="live-evidence" aria-label="真实执行观察">
       <header>
         <span className="evidence-dot" />
-        <b>执行观察</b>
-        <small>{result ? "运行结果" : "等待运行"}</small>
+        <b>逐步回放</b>
+        <small>{step ? `第${position+1}/${steps.length}步` : result ? "本次结果" : "等待运行"}</small>
       </header>
       {stale && <p className="task-warning">旧版本结果，等待重新运行。</p>}
       {!result ? (
         <div className="evidence-empty">
           <h3>运行后查看状态</h3>
           <p>
-            运行后核对输出。受支持的C、C++和Python代码可以逐步查看变量，再打开“我的代码动画”观察变化。
+            最终输出在下方“运行结果”查看。这里逐步观察变量，或打开“我的代码动画”看完整回放。
           </p>
         </div>
       ) : (

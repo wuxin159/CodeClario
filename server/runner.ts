@@ -14,7 +14,8 @@ export async function runSandbox(request: {
   stdin: string;
   tests: { input: string; expected: string }[];
   functionCheck?: boolean;
-}): Promise<Record<string, any>> {
+}, signal?:AbortSignal): Promise<Record<string, any>> {
+  if(signal?.aborted)throw new AccountError(499,"执行已停止。");
   // 宿主层先限并发，容器内再限资源；两者共同控制小内存服务器的运行开销。
   if (activeRuns >= runnerMaxConcurrent)
     throw new AccountError(429, "运行队列繁忙，请稍后再试。");
@@ -53,6 +54,7 @@ export async function runSandbox(request: {
       let out = "",
         err = "",
         overLimit = false;
+      let aborted=false;
       const cleanup = () => {
         // 杀掉 Docker 客户端不等于容器已退出，异常路径还需按本次唯一名称清理容器。
         child.kill();
@@ -80,10 +82,13 @@ export async function runSandbox(request: {
       });
       child.on("error", () => {
         clearTimeout(timer);
+        signal?.removeEventListener("abort",onAbort);
         reject(new AccountError(503, "代码运行服务暂不可用。"));
       });
       child.on("close", (status) => {
         clearTimeout(timer);
+        signal?.removeEventListener("abort",onAbort);
+        if(aborted){reject(new AccountError(499,"执行已停止。"));return;}
         if (overLimit) {
           reject(
             new AccountError(413, "执行记录或输出过大，请缩小输入或循环范围。"),
@@ -108,6 +113,9 @@ export async function runSandbox(request: {
         }
       });
       child.stdin.on("error", () => {});
+      const onAbort=()=>{aborted=true;cleanup();};
+      signal?.addEventListener("abort",onAbort,{once:true});
+      if(signal?.aborted)onAbort();
       child.stdin.end(JSON.stringify(request));
     });
   } finally {

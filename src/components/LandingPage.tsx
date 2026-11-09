@@ -5,11 +5,13 @@ import BubbleSortShowcase from "./BubbleSortShowcase";
 import { languages, lessons, type Language } from "../../shared/curriculum";
 
 const screens = [
-  { title: "学习安排", image: "task-current.jpg", heading: "先找到，今天的下一步。", body: "从当前任务和真实学习记录出发，把目标拆成一小步。中断之后，也能接着继续。" },
-  { title: "动手实践", image: "editor.jpg", heading: "把想法，写成自己的代码。", body: "编辑、运行、查看输出。老师的提问与代码放在同一处，带着问题亲手尝试。" },
-  { title: "执行观察", image: "observe.jpg", heading: "停在变化发生的那一行。", body: "查看受支持程序的变量、函数调用、指针和对象状态，把代码与执行轨迹对应起来。" },
-  { title: "学习过程", image: "evidence-current.jpg", heading: "留下的不只是一个答案。", body: "回看最初判断、运行与修改。独立作答、辅助通过和订正分别记录，下一步有据可循。" },
+  { title: "学习安排", image: "task-hd-20261109", heading: "先找到，今天的下一步。", body: "从当前任务和真实学习记录出发，把目标拆成一小步。中断之后，也能接着继续。" },
+  { title: "动手实践", image: "editor-hd-20261109", heading: "把想法，写成自己的代码。", body: "编辑、运行、查看输出。老师的提问与代码放在同一处，带着问题亲手尝试。" },
+  { title: "执行观察", image: "observe-hd-20261109", heading: "停在变化发生的那一行。", body: "查看受支持程序的变量、函数调用、指针和对象状态，把代码与执行轨迹对应起来。" },
+  { title: "学习过程", image: "evidence-hd-20261109", heading: "留下的不只是一个答案。", body: "回看最初判断、运行与修改。独立作答、辅助通过和订正分别记录，下一步有据可循。" },
 ];
+// 展示图保留用户截图的原始像素，用无损WebP传输；原图入口单独提供PNG。
+const screenshotSize = { width: 3164, height: 1712 };
 const faqs = [
   ["完全没有编程基础，也可以开始吗？", "可以。点击“零基础？从第一课开始”，从输出、变量与条件逐步学习。学过for循环和数组或列表，再进入冒泡排序综合实践；首页也可以先观察动画，不需要安装开发工具。"],
   ["图里的变化来自我的代码吗？", "首页排序动画是课程示例；课程中会区分示例与真实运行。受支持的C、C++和Python程序可以查看执行状态；C/C++使用同代码、同输入的隔离调试回放，并核对普通运行输出。超出采集范围时，普通运行结果仍然保留。"],
@@ -168,7 +170,7 @@ export default function LandingPage({ authenticated, accountLoading = false, sta
         <div className="cine-hero-content">
         <div className="cine-hero-copy">
           <p className="cine-learning-question">AI时代，如何高效学习编程，提升代码能力？</p>
-          <h1 className="cine-hero-enter">看见执行，<br/>学懂代码。</h1>
+          <h1 className="cine-hero-enter">看见执行<br/>学懂代码</h1>
           <div className="cine-hero-support">
             <p className="cine-hero-description cine-hero-enter">从一段冒泡排序开始，看懂循环与数组怎样配合。<br/>跟着AI的引导，动手修改，再验证自己的理解。</p>
             <div className="cine-actions cine-hero-enter">
@@ -203,7 +205,7 @@ export default function LandingPage({ authenticated, accountLoading = false, sta
         </div>
         <div className="cine-unfold-media cine-wide">
           <button ref={unfoldImage} className="cine-unfold-image" onClick={() => openPreview(2)} aria-label="放大执行观察界面示例">
-            <img src="/product/observe.jpg" alt="代码灵真实产品界面：代码与执行观察" loading="lazy" width="1440" height="900"/>
+            <img src={`/product/${screens[2].image}.webp`} alt="代码灵真实产品界面：代码与执行观察" loading="lazy" decoding="async" {...screenshotSize}/>
             <span><Expand size={16}/>查看完整界面</span>
           </button>
         </div>
@@ -231,14 +233,14 @@ export default function LandingPage({ authenticated, accountLoading = false, sta
             </div>
             <div className="cine-journey-media" id="cine-journey-panel" role="tabpanel" aria-labelledby={"cine-tab-"+selected}>
               <button className="cine-journey-image" onClick={()=>openPreview(selected)} aria-label={"放大"+screen.title+"界面示例"}>
-                {screens.map((item,index)=><img key={item.image} src={"/product/"+item.image} className={index===selected?"is-current":""} alt={index===selected?"代码灵"+item.title+"真实界面示例":""} aria-hidden={index!==selected} loading="lazy" width="1440" height="900"/>)}
+                {screens.map((item,index)=><img key={item.image} src={`/product/${item.image}.webp`} className={index===selected?"is-current":""} alt={index===selected?"代码灵"+item.title+"真实界面示例":""} aria-hidden={index!==selected} loading="lazy" decoding="async" {...screenshotSize}/>)}
                 <span><Expand size={16}/></span>
               </button>
               <p className="cine-journey-caption">{screen.title} · 真实产品界面示例 <span>{selected+1} / {screens.length}</span></p>
             </div>
           </div>
           <div className="cine-thumbnails" aria-label="全部产品界面">
-            {screens.map((item,index)=><button key={item.image} aria-label={"选择"+item.title+"界面"} aria-pressed={selected===index} onClick={()=>chooseScreen(index)}><img src={"/product/"+item.image} alt={item.title+"缩略图"} loading="lazy"/><span>{item.title}</span></button>)}
+            {screens.map((item,index)=><button key={item.image} aria-label={"选择"+item.title+"界面"} aria-pressed={selected===index} onClick={()=>chooseScreen(index)}><img src={`/product/${item.image}-320.webp`} alt={item.title+"缩略图"} loading="lazy" decoding="async" width="320" height="173"/><span>{item.title}</span></button>)}
           </div>
         </div>
       </section>
@@ -269,8 +271,8 @@ export default function LandingPage({ authenticated, accountLoading = false, sta
     </main>
 
     {preview&&<div className="cine-lightbox" role="presentation" onClick={()=>setLightbox(null)}><div role="dialog" aria-modal="true" aria-label={preview.title+"界面预览"} ref={dialog} onClick={event=>event.stopPropagation()}>
-      <header><b>{preview.title} · 界面示例</b><div><button onClick={()=>setFullSize(!fullSize)}>{fullSize?"适应窗口":"原尺寸查看"}</button><a href={"/product/"+preview.image} target="_blank" rel="noreferrer">打开原图<ArrowUpRight size={14}/></a><button aria-label="关闭图片预览" onClick={()=>setLightbox(null)}><X size={22}/></button></div></header>
-      <div className={"cine-lightbox-image"+(fullSize?" full-size":"")}><img src={"/product/"+preview.image} alt={"代码灵"+preview.title+"完整界面示例"}/></div>
+      <header><b>{preview.title} · 高清界面示例</b><div><button onClick={()=>setFullSize(!fullSize)}>{fullSize?"适应窗口":"原尺寸查看"}</button><a href={`/product/${preview.image}.png`} target="_blank" rel="noreferrer">打开PNG原图<ArrowUpRight size={14}/></a><button aria-label="关闭图片预览" onClick={()=>setLightbox(null)}><X size={22}/></button></div></header>
+      <div className={"cine-lightbox-image"+(fullSize?" full-size":"")}><img src={`/product/${preview.image}.webp`} alt={"代码灵"+preview.title+"完整界面示例"} {...screenshotSize}/></div>
     </div></div>}
   </div>;
 }

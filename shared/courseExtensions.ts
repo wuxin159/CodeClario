@@ -152,7 +152,7 @@ for (const language of ["c", "cpp", "python"] as const) {
       "若忘记更新 i，条件可能永远为真；若写 i < n，则会漏掉 n。本课 n=0 时总和应为 0。",
       "读入 0 到 20 的整数 n，使用 while 计算 1 到 n 的和，包括 n。观察条件失败后程序如何继续。",
     ],
-    task: "用 while 求 1 到 n 的和（包含 n）；输入范围 0–20。修正循环条件，使 n=0 也正确输出 0。",
+    task: "用 while 求 1 到 n 的和（包含 n）；输入范围 0–20。初始程序会漏加最后一个数，请修正循环条件，并验证 n=0 时仍输出 0。",
     starter: program(
       language,
       `${read(language)}\n${loop.replace("i <= n", "i < n")}`,
@@ -2218,7 +2218,9 @@ const existingExtensions = definitions.map((d) => {
     ],
   };
   const prerequisites =
-    d.order <= 30
+    d.number === 8
+      ? ["先理解变量、比较条件和累加；不需要先学数组"]
+      : d.order <= 30
       ? ["先理解变量、整数输入和输出"]
       : d.order <= 90
         ? ["先理解变量、分支、循环与下标"]

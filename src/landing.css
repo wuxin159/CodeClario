@@ -96,7 +96,7 @@
 .cine-journey-controls button { background:none; border:0; padding:7px 0; color:#3f526a; display:inline-flex; align-items:center; gap:8px; font-size:12px!important; min-height:36px; }
 .cine-journey-controls .cine-follow { color:#245dd8; }
 .cine-journey-media { min-width:0; }
-.cine-journey-image { width:100%; aspect-ratio:1440/900; position:relative; display:block; overflow:hidden; padding:0; border:1px solid #e0e4e9; border-radius:5px; background:#f3f5f8; line-height:0; }
+.cine-journey-image { width:100%; aspect-ratio:3164/1712; position:relative; display:block; overflow:hidden; padding:0; border:1px solid #e0e4e9; border-radius:5px; background:#f3f5f8; line-height:0; }
 .cine-journey-image>img { width:100%; height:100%; position:absolute; inset:0; object-fit:contain; opacity:0; transition:opacity .3s ease; pointer-events:none; }
 .cine-journey-image>img.is-current { opacity:1; }
 .cine-journey-image>span { display:grid; place-items:center; position:absolute; bottom:16px; right:16px; width:36px; height:36px; background:#fff; color:#384a60; border-radius:4px; }
@@ -104,7 +104,7 @@
 .cine-journey-caption>span { font-variant-numeric:tabular-nums; }
 .cine-thumbnails { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:22px; margin-top:24px; width:70%; margin-left:auto; }
 .cine-thumbnails button { display:grid; grid-template-columns:70px 1fr; gap:10px; align-items:center; background:none; border:0; text-align:left; padding:8px 0; color:#78818d; font-size:11px!important; border-bottom:1px solid transparent; } /* taste-skill-ignore: 真实选择控件的选中状态或图片对话框工具栏分界。 */
-.cine-thumbnails button img { width:70px; aspect-ratio:1.6; object-fit:cover; opacity:.6; border-radius:2px; transition:opacity .18s; }
+.cine-thumbnails button img { width:70px; aspect-ratio:3164/1712; object-fit:contain; opacity:.6; border-radius:2px; transition:opacity .18s; }
 .cine-thumbnails button[aria-pressed="true"] { color:#214b97; border-bottom-color:#245dd8; }
 .cine-thumbnails button[aria-pressed="true"] img,.cine-thumbnails button:hover img { opacity:1; }
 
