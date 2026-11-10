@@ -1,6 +1,6 @@
 # 代码灵 · CodeClario
 
-AI 驱动的可视化编程学习平台，提供 C、C++、Python 各19节课程，包含循环与数组之后的冒泡排序综合实践。
+AI 驱动的可视化编程学习平台，提供 C、C++、Python、Java 四种语言，共89节课程与实践。C/C++/Python各19节基础课和2节独立实践；Java包含24节基础课和2节独立实践，按对象创建、引用、集合、继承、多态、接口与异常的顺序深入。
 
 AI围绕课程引入、运行结果、修改和理解检查主动提供教学引导；可视化帮助学习者观察自己的代码怎样执行。
 
@@ -8,6 +8,7 @@ AI围绕课程引入、运行结果、修改和理解检查主动提供教学引
 
 - 每日AI学习安排：根据当前任务和学习记录生成计划，支持调整时间、语言和学习意愿。
 - 课程实践：代码编辑、标准输入、真实编译运行、样例检查和草稿恢复。
+- 练习梯度：引导修改、补全关键步骤、从空白组织程序；四种语言均在循环、数组学习后安排条件累加与数组最大值独立实践。“独立实践”描述练习形式，不自动等同于已经独立掌握。
 - 执行回放：受支持程序的变量、函数调用、指针关系和对象状态；课程概念示例另行标注。
 - 错误实验：独立修改、运行与对比，不代替主课程成绩。
 - 理解检查：区分独立作答、辅助作答、订正和重复题。
@@ -20,8 +21,8 @@ AI围绕课程引入、运行结果、修改和理解检查主动提供教学引
 | --- | --- |
 | `src/` | React、TypeScript与CodeMirror前端 |
 | `server/` | Express服务、AI流程、账户与数据库 |
-| `shared/` | 三语言课程、类型和教学模型 |
-| `runner/` | Docker隔离执行器与Python/GDB状态采集 |
+| `shared/` | 四语言课程、类型和教学模型 |
+| `runner/` | Docker隔离执行器与Python/GDB/JDI状态采集 |
 | `public/` | 网站Logo与实际产品预览图 |
 
 大模型通过服务端DeepSeek接口接入。程序运行和判题由执行器完成，不由模型猜测结果。
@@ -30,7 +31,7 @@ AI教学采用分阶段提示词与结构化结果校验：先讲基础，再围
 
 课程RAG结合BM25、概念词扩展和倒数排名融合（RRF），检索三语言课程与常见误区卡片；含糊问题可由模型做一次受限查询改写，失败时回退本地检索。该实现不使用向量数据库。入口为`server/knowledge.ts`、`server/knowledgeCards.ts`和`server/knowledgeRewrite.ts`。
 
-Function Calling支持读取运行证据、检索课程与选择额外验证输入。对于while求和、商余数和冒泡排序的三语言练习，AI可选择审校过的输入，使用原学生代码在Docker中再次运行；每任务最多两次，结果单独标为诊断，不计课程成绩。代码入口为`server/flow.ts`、`server/diagnostics.ts`和`server/prompts/teaching.ts`。当前没有独立MCP服务或语音功能。
+Function Calling支持读取运行证据、检索课程与选择额外验证输入。对于while求和、商余数和冒泡排序的四语言练习，AI可选择审校过的输入，使用原学生代码在Docker中再次运行；每任务最多两次，结果单独标为诊断，不计课程成绩。代码入口为`server/flow.ts`、`server/diagnostics.ts`和`server/prompts/teaching.ts`。当前没有独立MCP服务或语音功能。
 
 项目为原创编程学习应用，使用React、Express、CodeMirror等开源依赖；依赖版本以`package-lock.json`为准。
 
@@ -38,6 +39,8 @@ Function Calling支持读取运行证据、检索课程与选择额外验证输�
 ## 本地运行
 
 需要 Node.js **24或以上**、npm和可运行Linux容器的Docker环境。C/C++原生回放目前在Linux x86-64执行器验证。
+
+Java 21编译器与JDI采集器包含在执行器镜像中，宿主机无需另装JDK。新增Java支持后需要重新执行`npm run runner:build`；只重建前端不能更新执行器。
 
 1. 在项目目录安装依赖：
 
@@ -79,13 +82,28 @@ Function Calling支持读取运行证据、检索课程与选择额外验证输�
 
 `RUNNER_MAX_CONCURRENT`控制同时执行的程序数量，可设为1、2或3，默认3。约2GB内存的演示服务器建议先设为1，再根据实际资源占用调整。
 
+每次执行仍使用禁网、只读根文件系统和临时工作目录。C/C++/Python容器限制256MB、32个进程/线程；Java因包含独立JDI调试虚拟机，限制384MB、64个进程/线程，并分别约束JVM堆、元空间、栈与代码缓存。
+
 `node_modules/`、`dist/`、本地环境文件和数据库不进入Git；部署时安装依赖并重新构建。
 
 ## 能力边界
 
 真实回放有语法、时间和数据量限制，不是任意程序的完整内存调试器。C/C++回放是同代码、同输入的另一次隔离调试执行，并核对普通运行输出；地址只属于该次调试运行。Python类的普通执行可用，当前尚无类的真实状态回放。不支持或采集不足时会显示实际状态，并保留普通运行结果。
 
+Java使用`Main.java`及`public class Main`，基础课程不使用`package`声明。真实回放通过JDI另行运行同源码、同输入，输出一致时展示源码行、局部变量、数组、方法帧、对象字段和引用关系；对象标识不代表固定内存地址。最多保留160个事件及有界数据，超限明确标为截断；单行多语句可能合并。当前不提供并发程序的完整回放，也不展开任意JDK内部对象。入口为`runner/java/TraceMain.java`及`runner/java/TraceEntry.java`。
+
 课程示例、自己代码的执行、实验结果与理解检查分别记录；一次通过不等同于证明学习者已经掌握全部知识。
+
+界面将“练习通过”与“理解检验”分别说明。未发送的截图问题文字按账户与课程保存在当前标签页会话中，选图仅在有界内存缓存中保留；关闭面板可继续编辑，刷新后需重新选图，退出账户会清理相应草稿。
 
 截图分析需要所配置模型支持图像输入；分析结果是模型对图片的理解，不是本网站的真实执行结果，不据此判定课程通过。请勿上传包含凭据或个人隐私的截图。上传有格式、尺寸、频率与并发限制；文本会检查常见密钥格式，代码、检索资料与图片内容均按不可信资料处理，但这些措施不能保证模型永不误读或生成错误解释。
 
+
+## 语言标识素材
+
+语言标识仅用于识别相应课程，不表示这些机构对本项目的认证或背书，保持原始配色。
+
+- C：Devicon的通行社区标识，并非ISO统一官方语言Logo；[Devicon](https://devicon.dev/)，MIT许可正文位于`public/languages/DEVICON-LICENSE.txt`。
+- C++：[Standard C++ Foundation提供的标识](https://github.com/isocpp/logos)，作者Jeremy Kratz，使用规范见[官方条款](https://isocpp.org/home/terms-of-use)。
+- Python：[Python Software Foundation提供的双蛇标识](https://www.python.org/community/logos/)，遵循PSF标识使用规范。
+- Java：[OpenJDK Duke项目的Wave素材](https://github.com/openjdk/duke/blob/master/vector/Wave.svg)，BSD许可的官方吉祥物；仅调整SVG画布空白，不改变人物图形。[官方说明](https://dev.java/duke/)推荐使用Duke代表Java生态。

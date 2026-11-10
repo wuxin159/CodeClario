@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { AccountError, type LearningDatabase } from "./database.ts";
 import { requireAccount, requireMatchingAccount } from "./accounts.ts";
 import { aiConfig } from "./ai.ts";
-import { findLesson, lessons, type Language } from "../shared/curriculum.ts";
+import { findLesson, lessons, isLanguage, type Language } from "../shared/curriculum.ts";
 import { teachingPlan } from "../shared/teaching.ts";
 import { lessonIntroduction } from "../shared/lessonIntroduction.ts";
 import { MissionStore } from "./missions.ts";
@@ -13,7 +13,7 @@ import type { DailyPlan, DailySnapshot, DailyStep } from "../shared/daily.ts";
 import { statedDailyMinutes } from "../shared/dailyBudget.ts";
 import {assertNoCredentials,learningRequestBoundary} from "./aiSafety.ts";
 const internalText = (text: string) =>
-  /\b(history|candidates|schema|courseReview|phase|budget|evidence)\b|(?:c|cpp|python)-\d+|候选|新手规则|校验规则|不评价能力/i.test(
+  /\b(history|candidates|schema|courseReview|phase|budget|evidence)\b|(?:c|cpp|python|java)-\d+|候选|新手规则|校验规则|不评价能力/i.test(
     text,
   );
 
@@ -165,7 +165,7 @@ export function dailyRoutes(store: LearningDatabase) {
         const active = missions.active(uid),
           language: Language =
             req.body.language ?? old?.language ?? active?.goal.language ?? "c";
-        if (!["c", "cpp", "python"].includes(language))
+        if (!isLanguage(language))
           throw new AccountError(400, "请选择已有课程语言。");
         if (old?.revision && old.revision >= 12 && explicit)
           throw new AccountError(429, "今天已多次调整，现有计划仍可继续。");

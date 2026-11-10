@@ -4,9 +4,13 @@ import type { Lesson } from "../../shared/curriculum";
 import type { Scene } from "../../shared/scenes";
 import { sceneFrame } from "../../shared/sceneMotion";
 import { loopPresentation, pointerPresentation } from "../../shared/classroomPresentation";
+import SpecialConceptStage from "./SpecialConceptStage";
+import JavaDepthStage from "./JavaDepthStage";
+import {javaDepthTopics} from "../../shared/javaDepthLessons";
 
 export function hasConceptStage(lesson: Lesson) {
-  return ["for", "while", "function"].includes(lesson.topic ?? "") || ["c-13", "cpp-11", "cpp-12"].includes(lesson.id);
+  if(javaDepthTopics.has(lesson.topic??""))return true;
+  return ["for", "while", "function", "practice-flow", "practice-array", "java-reference", "java-equality"].includes(lesson.topic ?? "") || (lesson.language==="java"&&lesson.topic==="class") || ["c-13", "cpp-11", "cpp-12"].includes(lesson.id);
 }
 
 export default function ConceptStage({ lesson, scene, time, reduced = false, onInspect, onAsk }: {
@@ -19,6 +23,8 @@ export default function ConceptStage({ lesson, scene, time, reduced = false, onI
   const inspectable=(title:string,text:string):HTMLAttributes<HTMLDivElement>=>({role:"button",tabIndex:0,"aria-label":title,onClick:()=>inspect(title,text),onKeyDown:e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();e.stopPropagation();inspect(title,text);}}});
   const inspection=selection&&<aside className="ls-inspection selected" aria-live="polite"><b>{selection.title}</b><p>{selection.text}</p>{onAsk&&<button onClick={()=>onAsk(`请结合当前课程示例第${frame.index+1}步，解释「${selection.title}」为什么这样变化。`)}>向AI问这一处</button>}</aside>;
   const style = { "--step-progress": reduced ? 0 : frame.progress } as CSSProperties;
+  if(javaDepthTopics.has(lesson.topic??""))return <JavaDepthStage lesson={lesson} scene={scene} time={time} reduced={reduced} onInspect={onInspect} onAsk={onAsk}/>;
+  if(["practice-flow","practice-array","java-reference","java-equality"].includes(lesson.topic??"")||(lesson.language==="java"&&lesson.topic==="class"))return <SpecialConceptStage lesson={lesson} scene={scene} time={time} onInspect={onInspect} onAsk={onAsk}/>;
   if (lesson.topic === "for" || lesson.topic === "while") {
     const m = loopPresentation(lesson, scene, time);
     // for的更新和下一次判断在审校快照中合并；过渡阶段突出“更新”，数值仍等到下一帧提交。

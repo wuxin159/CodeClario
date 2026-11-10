@@ -8,7 +8,7 @@ import {
   LoaderCircle,
   Target,
 } from "lucide-react";
-import { findLesson, languages, lessons, type Language } from "../../shared/curriculum";
+import { findLesson, languages, lessons, languageName, type Language } from "../../shared/curriculum";
 import { entryQuestions, type LearningGoal } from "../../shared/mission";
 import type { PublicUser } from "../../shared/account";
 import type { Missions } from "../hooks/useMissions";
@@ -17,7 +17,7 @@ import DailyWelcome from "./DailyWelcome";
 import { useDailyPlan } from "../hooks/useDailyPlan";
 
 export const phaseNames = {
-  predict: "表达预期",
+  predict: "学习基础",
   run: "真实验证",
   revise: "分析与修正",
   retest: "独立检验",
@@ -126,7 +126,7 @@ export default function TaskHome({
                 </div>
                 <h2>从你的学习目标开始</h2>
                 <p className="task-intro">
-                  选一个目标，做一道简短预测。AI会结合你的记录，安排具体任务。
+                  告诉AI想学什么、目前会多少，从适合你的基础开始。
                 </p>
                 <form
                   className="goal-form"
@@ -194,10 +194,10 @@ export default function TaskHome({
                         <option value="some">写过一些代码，想查漏补缺</option>
                       </select>
                     </label>
-                    <div className="entry-diagnostic">
+                    {experience==="some"&&<div className="entry-diagnostic">
                       <div>
                         <b>先试着读一小段</b>
-                        <span>起点诊断 · 不计成绩</span>
+                        <span>可选起点诊断 · 不计成绩</span>
                       </div>
                       <pre>{question.code}</pre>
                       <p>你认为最终会输出什么？</p>
@@ -209,18 +209,17 @@ export default function TaskHome({
                               name="entry-answer"
                               checked={diagnostic === i}
                               onChange={() => setDiagnostic(i)}
-                              required
                             />
                             {o}
                           </label>
                         ))}
                       </div>
-                    </div>
+                    </div>}
                   </fieldset>
                   <div className="goal-actions">
                     <button
                       className="button primary"
-                      disabled={m.busy || diagnostic === null}
+                      disabled={m.busy}
                     >
                       {m.busy ? (
                         <LoaderCircle className="spin" size={17} />
@@ -260,11 +259,7 @@ export default function TaskHome({
                 </div>
                 <div className="task-home-title">
                   <small>
-                    {lesson?.language === "c"
-                      ? "C 语言"
-                      : lesson?.language === "cpp"
-                        ? "C++"
-                        : "Python"}{" "}
+                    {lesson?languageName(lesson.language):""}{" "}
                     / {lesson?.title}
                   </small>
                   <h2>{active.title}</h2>
@@ -362,7 +357,7 @@ export default function TaskHome({
                   </p>
                 </details>
                 <div className="home-task-track">
-                  {["表达预期", "真实验证", "分析与修正", "独立检验"].map(
+                  {["学习基础", "动手验证", "分析与修正", "理解检验"].map(
                     (s, i) => (
                       <div
                         key={s}
@@ -421,12 +416,7 @@ export default function TaskHome({
                 <dl>
                   <dt>当前阶段</dt>
                   <dd>{phaseNames[m.progress.phase]}</dd>
-                  <dt>我的预测</dt>
-                  <dd>
-                    {m.progress.episode.prediction
-                      ? m.progress.episode.prediction.value || "（无输出）"
-                      : "尚未记录"}
-                  </dd>
+                  {m.progress.episode.prediction&&<><dt>课堂中记录的预测</dt><dd>{m.progress.episode.prediction.value||"（无输出）"}</dd></>}
                   <dt>实测核对</dt>
                   <dd className="current-evidence">
                     {m.progress.stale
@@ -453,9 +443,9 @@ export default function TaskHome({
                 </dl>
               ) : (
                 <>
-                  <p>保存预测并运行后，实际结果与理解检查会记录在这里。</p>
+                  <p>先了解本课目标，再跟着讲解动手练习。运行结果与理解检查会记录在这里。</p>
                   <h3>从入门开始</h3>
-                  <p>C、C++、Python共{lessons.length}节课程。先读懂一小段，再编写和验证。</p>
+                  <p>C、C++、Python、Java共{lessons.length}节课程。先读懂一小段，再编写和验证。</p>
                 </>
               )}
             </section>
@@ -463,7 +453,7 @@ export default function TaskHome({
               <BookOpen />
               <div>
                 <b>课程中心</b>
-                <span>{lessons.length}节课程 · C / C++ / Python</span>
+                <span>{lessons.length}节课程 · C / C++ / Python / Java</span>
               </div>
               <ChevronRight size={17} />
             </button>
@@ -471,7 +461,7 @@ export default function TaskHome({
               <Compass />
               <div>
                 <b>学习记录</b>
-                <span>回看预测、运行、修正与复测</span>
+                <span>回看课堂回答、运行与理解检验</span>
               </div>
               <ChevronRight size={17} />
             </button>
@@ -514,7 +504,7 @@ export default function TaskHome({
       )}
       <footer className="page-footer">
         <span>代码灵 · CodeClario</span>
-        <span>C17 · C++17 · Python 3</span>
+        <span>C17 · C++17 · Python 3 · Java 21</span>
       </footer>
     </main>
   );

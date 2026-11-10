@@ -24,6 +24,13 @@ export default function ExecutionReplay({
       () => matchMedia("(prefers-reduced-motion: reduce)").matches,
     );
   const source = useRef<HTMLDivElement>(null);
+  const [sourceOpen,setSourceOpen]=useState(()=>!matchMedia("(max-width:1000px)").matches);
+  const sourceChoice=useRef(false);
+  useEffect(()=>{
+    const media=matchMedia("(max-width:1000px)");
+    const resize=()=>{if(!sourceChoice.current)setSourceOpen(!media.matches);};
+    media.addEventListener("change",resize);return()=>media.removeEventListener("change",resize);
+  },[]);
   const trace = result?.trace;
   // 始终回放运行记录里的快照；当前草稿有改动时仅提示过期，不替换历史源码或轨迹。
   const steps = trace?.steps ?? [];
@@ -66,7 +73,7 @@ export default function ExecutionReplay({
         top: Math.max(0, row.offsetTop - box.clientHeight / 2),
         behavior: reduced ? "instant" : "smooth",
       });
-  }, [step?.line, reduced]);
+  }, [step?.line, reduced,sourceOpen]);
   if (!result)
     return (
       <div className="replay-empty">
@@ -90,7 +97,7 @@ export default function ExecutionReplay({
     <div className="execution-replay">
       <div className="replay-provenance">
         <b>学生代码 · 真实执行回放</b>
-        <small>绑定本次代码与标准输入</small>
+          <small>绑定本次代码与标准输入</small>
       </div>
       {stale && (
         <p className="flow-stale">当前编辑内容已变化，此处为旧版本快照。</p>
@@ -170,15 +177,17 @@ export default function ExecutionReplay({
           : step.event === "return"
             ? "作用域执行结束"
             : "捕获到异常事件"}
+        <button className="replay-source-toggle" aria-expanded={sourceOpen} onClick={()=>{sourceChoice.current=true;setSourceOpen(v=>!v);}}>{sourceOpen?"收起代码":"显示本次代码"}</button>
       </p>
+      {!sourceOpen&&<pre className="replay-current-line">{code.split("\n")[step.line-1]}</pre>}
       {trace.notice && (
         <details className="trace-provenance">
           <summary>这份回放怎样采集</summary>
           <p>{trace.notice}</p>
         </details>
       )}
-      <div className="replay-stage">
-        <div className="replay-source" ref={source}>
+      <div className={`replay-stage ${sourceOpen?"":"source-collapsed"}`}>
+        {sourceOpen&&<div className="replay-source" ref={source}>
           {code.split("\n").map((line, i) => (
             <div
               key={i}
@@ -189,7 +198,7 @@ export default function ExecutionReplay({
               <code>{line || " "}</code>
             </div>
           ))}
-        </div>
+        </div>}
 
         <ExecutionDiagram
           steps={steps}

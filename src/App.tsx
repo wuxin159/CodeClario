@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import BrandIdentity from "./components/BrandIdentity";
+import LanguageMark from "./components/LanguageMark";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -57,31 +58,6 @@ const navItems = [
   { id: "lab" as Page, title: "课程实践", icon: Code2 },
   { id: "progress" as Page, title: "学习记录", icon: GraduationCap },
 ];
-
-function LanguageMark({
-  language,
-  small = false,
-}: {
-  language: Language;
-  small?: boolean;
-}) {
-  return (
-    <span className={`language-mark ${language} ${small ? "small" : ""}`}>
-      {language === "c" ? (
-        "C"
-      ) : language === "cpp" ? (
-        <span>
-          C<sup>++</sup>
-        </span>
-      ) : (
-        <span className="python-mark">
-          <i />
-          <i />
-        </span>
-      )}
-    </span>
-  );
-}
 
 export default function App() {
   const [page, setPage] = useState<Page>(() => {
@@ -423,7 +399,7 @@ export default function App() {
                     lessons.filter((l) => l.language === nextLesson.language)
                       .length
                   }{" "}
-                  节已完成
+                  节练习通过
                 </small>
               </div>
               <ChevronRight size={15} />
@@ -433,7 +409,7 @@ export default function App() {
             <b>学习记录</b>
             <p>
               {user
-                ? `已完成 ${state.completed.length} / ${lessons.length} 节基础课程。`
+                ? `已有 ${state.completed.length} / ${lessons.length} 节练习通过。`
                 : "登录后，代码草稿和练习记录会保存到你的账户。"}
             </p>
             <button
@@ -848,7 +824,7 @@ export default function App() {
             <div className="stats-grid">
               <Stat
                 icon={<BookOpen />}
-                label="完成的课程"
+                label="练习通过的课程"
                 value={state.completed.length}
                 suffix="节"
                 detail="通过样例检查的学习任务"
@@ -872,7 +848,7 @@ export default function App() {
               />
               <Stat
                 icon={<Trophy />}
-                label="样例通过"
+                label="通过次数"
                 value={state.totals.passed}
                 suffix="次"
                 detail="通过全部样例的运行次数"
@@ -920,7 +896,7 @@ export default function App() {
                             lessons.filter((l) => l.language === language.id)
                               .length
                           }{" "}
-                          节已完成
+                          节练习通过
                         </small>
                       </div>
                       <ArrowUpRight size={18} />
@@ -1098,7 +1074,7 @@ export default function App() {
             <div className="eyebrow">使用说明</div>
             <h2>如何使用平台</h2>
             <p>
-              在我的学习选择学习目标并做一道起点预测，AI结合已有记录安排任务。你也可以从课程中心自主选择。
+              在我的学习选择学习目标，AI结合已有记录安排任务，从基础讲解开始。你也可以从课程中心自主选择。
             </p>
             <div className="help-steps">
               <div>

@@ -40,11 +40,12 @@
 .cine-hero-copy { position:relative; width:100%; padding-bottom:10px; }
 .cine-learning-question { font-size:16px; line-height:1.8; color:#49688f; margin-bottom:24px!important; max-width:390px; }
 .cine-course-note { margin-top:18px!important; font-size:12px; line-height:1.8; color:#61738a; max-width:360px; }
-.cine-course-note button { display:inline-flex; align-items:center; gap:5px; border:0; background:none; color:#49688f; padding:5px 0; min-height:34px; font-size:12px!important; }
 .cine-hero .cine-eyebrow { color:#9cb0c4; margin-bottom:25px; }
 .cine-hero h1 { color:#202d40; font-size:clamp(46px,4.45vw,66px); font-weight:600; line-height:1.2; letter-spacing:-.045em; white-space:nowrap; }
 .cine-hero-description { margin-top:29px!important; color:#5d6e83; font-size:17px; line-height:1.9; }
-.cine-actions { display:flex; align-items:center; gap:25px; margin-top:32px; }
+.cine-actions { display:flex; flex-wrap:wrap; align-items:center; gap:10px 25px; margin-top:32px; }
+.cine-hero-support .cine-actions { gap:10px 12px; }
+.cine-hero-support .cine-button { gap:12px; padding-inline:12px; }
 .cine-button { display:inline-flex; justify-content:center; align-items:center; gap:20px; min-height:54px; padding:13px 24px; border:0; border-radius:5px; font-size:15px; font-weight:550; white-space:nowrap; transition:transform .18s var(--cine-ease),background .18s; }
 .cine-button-light { background:#f4f7fb; color:#101b29!important; }
 .cine-button-light:hover { background:#dce8fa; }

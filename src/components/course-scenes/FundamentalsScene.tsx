@@ -33,7 +33,7 @@ export default function FundamentalsScene({ lesson, scene, model:m, progress, in
     return <>
       <div className="ls-measure-total"><strong>{n}<small>秒</small></strong><span>每60秒组成一个完整分钟</span></div>
       <div className="ls-minute-groups">{groups.map((size,i)=><button key={i} className={size<unit?"remainder":""} onClick={()=>inspect(size===unit?"完整的一组":"不足一组的余数",size===unit?"这60秒计为一个完整分钟，参与商的计数。":`${size}秒不足60秒，所以保留为余数，不增加完整分钟数。`)}><span>{size===unit?`第${i+1}个完整分钟`:"剩下的部分"}</span><div><i style={{width:`${size/unit*100}%`}}/></div><b>{size}秒</b></button>)}</div>
-      <div className="ls-two-results"><div><code>n {lesson.language==="python"?"//":"/"} 60</code><strong>{m.values["整分钟"]??"待求商"}</strong><small>完整组的数量</small></div><div><code>n % 60</code><strong>{m.values["余秒"]??"待求余"}</strong><small>分组之后的剩余</small></div></div>
+      <div className="ls-two-results"><div><code>n {lesson.language==="python"?"//":"/"} 60</code><strong>{m.values["整分钟"]??m.values.minutes??"待求商"}</strong><small>完整组的数量</small></div><div><code>n % 60</code><strong>{m.values["余秒"]??m.values.seconds??"待求余"}</strong><small>分组之后的剩余</small></div></div>
       <div className="ls-observation">{quotient} × 60 + {remainder} = {n}，两部分合起来才是原数。</div>
     </>;
   }

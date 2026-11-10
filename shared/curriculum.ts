@@ -1,5 +1,5 @@
 import { courseExtensions } from "./courseExtensions.ts";
-export type Language = "c" | "cpp" | "python";
+export type Language = "c" | "cpp" | "python" | "java";
 export type Lesson = {
   id: string;
   language: Language;
@@ -18,6 +18,8 @@ export type Lesson = {
   expected: string;
   stdin: string;
   hints: string[];
+  practiceLevel?: "guided" | "partial" | "independent";
+  introduction?: {why:string;goal:string;firstStep:string;analogy:string};
 };
 
 export const languages = [
@@ -48,7 +50,15 @@ export const languages = [
     color: "amber",
     level: "入门",
   },
+  {
+    id: "java" as const, name: "Java", mark: "Java", tag: "对象 · 集合 · 多态与接口",
+    description: "从基础语法走向对象、集合与多态，观察调用、引用和异常路径。", color: "blue", level: "入门",
+  },
 ];
+export const isLanguage=(value:unknown):value is Language=>languages.some(l=>l.id===value);
+export const languageName=(language:Language)=>languages.find(l=>l.id===language)!.name;
+export const languageVersions:Record<Language,string>={c:"C17",cpp:"C++17",python:"Python 3",java:"Java 21"};
+export const sourceFileName=(language:Language)=>language==="java"?"Main.java":`main.${language==="python"?"py":language}`;
 
 const topics = [
   {
@@ -230,7 +240,7 @@ const code = {
   ],
 };
 
-const languageNotes: Record<Language, string[]> = {
+const languageNotes: Record<Exclude<Language,"java">, string[]> = {
   c: [
     "C 使用 printf 输出字符串，\\n 表示换行；main 的 return 0 表示程序正常结束。",
     "C 的整数变量可以声明为 int answer = 42；printf 中的 %d 用于输出 int。",
@@ -257,13 +267,13 @@ const languageNotes: Record<Language, string[]> = {
   ],
 };
 
-const foundationLessons: Lesson[] = languages.flatMap((language) =>
+const foundationLessons: Lesson[] = (["c", "cpp", "python"] as const).flatMap((language) =>
   // 旧课程 ID 保持稳定，展示顺序由 order 决定，防止扩课后历史学习记录关联到别的知识点。
   topics.map((topic, index) => ({
     ...topic,
-    explanation: [...topic.explanation, languageNotes[language.id][index]],
-    id: `${language.id}-${index + 1}`,
-    language: language.id,
+    explanation: [...topic.explanation, languageNotes[language][index]],
+    id: `${language}-${index + 1}`,
+    language,
     index,
     order: [10, 20, 40, 50, 70, 105][index],
     topic: ["output", "variable", "condition", "for", "array", "function"][
@@ -271,8 +281,8 @@ const foundationLessons: Lesson[] = languages.flatMap((language) =>
     ],
     minutes: [8, 12, 15, 15, 18, 16][index],
     stdin: index === 2 ? "20" : "",
-    starter: code[language.id][index][0],
-    solution: code[language.id][index][1],
+    starter: code[language][index][0],
+    solution: code[language][index][1],
   })),
 );
 

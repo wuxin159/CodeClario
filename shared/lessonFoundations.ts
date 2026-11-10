@@ -55,6 +55,7 @@ const primers: Record<VisualKind, string> = {
   copy: "Python名字绑定对象。直接让b=a会共享同一个列表；a.copy()创建新的外层列表，本例替换b的整数元素不会改动a。",
 };
 export function lessonFoundation(lesson: Lesson): string {
+  if(lesson.introduction)return lesson.explanation[0];
   if (lesson.topic === "for")
     return lesson.language === "python"
       ? "循环让同一段缩进代码重复执行。for每轮把range给出的一个数交给i，range不包含右边界；total用来保留前面几轮的累加结果。"

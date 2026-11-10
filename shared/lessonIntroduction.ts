@@ -168,6 +168,7 @@ const entries: Record<VisualKind, Entry> = {
   },
 };
 export function lessonIntroduction(lesson: Lesson): Entry {
+  if(lesson.introduction)return lesson.introduction;
   const base = entries[visualLesson(lesson).kind];
   if (lesson.id.endsWith("-8") && lesson.title.startsWith("while"))
     return {

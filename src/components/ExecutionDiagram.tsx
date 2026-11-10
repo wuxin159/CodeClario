@@ -46,6 +46,7 @@ export default function ExecutionDiagram({
     (n) => (n.kind === "pointer" || n.kind === "reference") && !n.unavailable,
   );
   const objects = roots.some((n) => n.kind === "object" || n.kind === "array");
+  const sharedClassState=roots.filter(n=>n.type.endsWith(" static"));
   const view =
     manual ??
     (pointers.length || objects
@@ -114,7 +115,7 @@ export default function ExecutionDiagram({
         {[
           ["values", "变量与运算"],
           ["calls", "函数调用"],
-          ["objects", "对象与指针"],
+          ["objects", "对象关系"],
         ].map(([id, label]) => (
           <button
             key={id}
@@ -138,6 +139,10 @@ export default function ExecutionDiagram({
           </span>
         ))}
       </div>
+      {sharedClassState.length > 0 && <aside className="execution-shared-state" aria-label="类共享成员">
+        <b>类共享状态 · static</b>
+        {sharedClassState.map(type=><p key={type.name}><code>{type.name}</code> {type.children?.map(field=><span key={field.name}>{field.name} = {field.value} </span>)}</p>)}
+      </aside>}
       {view === "values" && (
         <>
           <svg
@@ -285,7 +290,7 @@ export default function ExecutionDiagram({
             <label className="observed-pointer-choice">
               观察指向关系{" "}
               <select
-                aria-label="观察哪个指针或引用"
+                aria-label="选择观察的变量"
                 value={pointer?.name}
                 onChange={(e) => setPointerName(e.target.value)}
               >
@@ -319,7 +324,7 @@ export default function ExecutionDiagram({
                 <article key={node.name}>
                   <header>
                     <b>{node.name}</b>
-                    <small>{node.type}</small>
+                    <small>{node.declaredType && node.declaredType !== node.type ? `声明 ${node.declaredType} · 实际 ${node.type}` : node.type}</small>
                   </header>
                   <div className="observed-members">
                     {node.children?.length ? (

@@ -239,6 +239,7 @@ const reviews: Omit<Question, "id">[] = [
 export function teachingPlan(lesson: Lesson) {
   const extended = extensionFor(lesson.id);
   if (extended) return extended.plan;
+  if(lesson.language==="java")throw new Error(`Java课程缺少教学设计：${lesson.id}`);
   return {
     version: "intro-v3",
     chapter: chapters[lesson.index],

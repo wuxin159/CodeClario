@@ -35,6 +35,7 @@ export type TraceStep = {
   returnTarget?: string;
 };
 export type TraceValue = {
+  declaredType?:string;
   name: string;
   type: string;
   value: string;

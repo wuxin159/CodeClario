@@ -5,7 +5,7 @@ import { promisify } from "node:util";
 import { randomUUID, createHash } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { findLesson, type RunResult } from "../shared/curriculum.ts";
+import { findLesson, languages, type RunResult } from "../shared/curriculum.ts";
 import { coachingHandler } from "./coaching.ts";
 import { AccountError, LearningDatabase } from "./database.ts";
 import { accountRoutes, requireMatchingAccount } from "./accounts.ts";
@@ -77,7 +77,7 @@ app.get("/api/status", async (req, res) => {
   res.json({
     runner,
     ai: Boolean(aiConfig(req.user?.id).key),
-    languages: ["c", "cpp", "python"],
+    languages: languages.map(l=>l.id),
     model: process.env.DEEPSEEK_MODEL || "deepseek-flash",
   });
 });
@@ -118,7 +118,7 @@ app.post("/api/run", requireMatchingAccount, async (req, res) => {
       code,
       stdin,
       tests,
-      functionCheck: lesson.index === 5,
+      functionCheck: lesson.topic === "function",
     });
     const actual = String(result.stdout || "");
     const checkedTests =

@@ -9,6 +9,10 @@ export type LearningGoal = {
 };
 // A short, reviewed entry question. It is evidence, never an ability score.
 export const entryQuestions = {
+  java: {
+    code: "int total = 0;\nfor (int i = 1; i < 4; i++) total += i;\nSystem.out.println(total);",
+    options: ["6", "10", "不确定"], correct: 0,
+  },
   c: {
     code: 'int total = 0;\nfor (int i = 1; i < 4; i++) total += i;\nprintf("%d", total);',
     options: ["6", "10", "不确定"],

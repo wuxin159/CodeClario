@@ -46,6 +46,7 @@ function outputLines(language: Language) {
     ? ["for number in numbers:", "    print(number)"]
     : [language === "c"
       ? 'for (int k = 0; k < n; k++) printf("%d\\n", numbers[k]);'
+      : language === "java" ? "for (int k = 0; k < n; k++) System.out.println(numbers[k]);"
       : "for (int k = 0; k < n; k++) std::cout << numbers[k] << '\\n';"];
 }
 
@@ -53,7 +54,7 @@ function outputLines(language: Language) {
 export function bubbleCode(language: Language, values: readonly number[], onePass = false) {
   const declarations = language === "python"
     ? [`numbers = [${values.join(", ")}]`, `n = ${values.length}`]
-    : [`int numbers[] = {${values.join(", ")}};`, `int n = ${values.length};`];
+    : [`${language==="java"?"int[] numbers":"int numbers[]"} = {${values.join(", ")}};`, `int n = ${values.length};`];
   const lines = [...declarations, ...loopLines(language, onePass), ...outputLines(language)];
   // 一轮结束对应内层循环检查结束；不能指向可能根本没有执行的交换赋值行。
   return { code: lines.join("\n"), lines: { initial: 2, pass: 3, compare: 5, swapStart: 6, swapEnd: 8, passEnd: 4, output: lines.length } };
@@ -66,10 +67,12 @@ export function bubbleProgram(language: Language, options: { onePass?: boolean; 
     // 本课固定读5项，避免在刚学数组时引入变长数组、容器扩容或列表推导式。
     const input = language === "python"
       ? ["# 顺序读入五项，让本课的执行观察集中在排序的两层循环。", "numbers = [int(input()), int(input()), int(input()), int(input()), int(input())]", "n = 5"]
+      : language === "java" ? ["java.util.Scanner input = new java.util.Scanner(System.in);", "int[] numbers = new int[5];", "int n = 5;", "for (int k = 0; k < n; k++) {", "    numbers[k] = input.nextInt();", "}"]
       : ["int numbers[5];", "int n = 5;", "for (int k = 0; k < n; k++) {", language === "c" ? '    scanf("%d", &numbers[k]);' : "    std::cin >> numbers[k];", "}"];
     body = [...input, ...loopLines(language, !!options.onePass), ...outputLines(language)].join("\n");
   }
   if (language === "python") return body + "\n";
+  if (language === "java") return `public class Main {\n    public static void main(String[] args) {\n${body.split("\n").map(line=>"        "+line).join("\n")}\n    }\n}\n`;
   return `${language === "c" ? "#include <stdio.h>" : "#include <iostream>"}\n\nint main(${language === "c" ? "void" : ""}) {\n${body.split("\n").map(line => "    " + line).join("\n")}\n    return 0;\n}\n`;
 }
 

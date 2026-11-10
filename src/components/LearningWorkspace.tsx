@@ -22,6 +22,7 @@ import {
   equivalentLesson,
   type Language,
   languages,
+  languageVersions, sourceFileName,
   type Lesson,
   type RunResult,
 } from "../../shared/curriculum";
@@ -52,6 +53,7 @@ import type { TeachingViewContext } from "../../shared/flow";
 import { lessonIntroduction } from "../../shared/lessonIntroduction";
 import type { Missions } from "../hooks/useMissions";
 import { executionInterruption } from "../../shared/executionFailure";
+import { replayLimitation } from "../../shared/replayCapability";
 
 import CodeEditor from "./RecoverableEditor";
 const runStatusLabel: Record<string, string> = {
@@ -102,6 +104,7 @@ type Props = {
 
 export default function LearningWorkspace(p: Props) {
   const { lesson, draft, savedInput, userId, status, notify } = p;
+  const staticReplayNote=replayLimitation(lesson.language,draft);
   const plan = teachingPlan(lesson);
   const languageLessons = lessons.filter((l) => l.language === lesson.language);
   const positionInCourse = languageLessons.findIndex((l) => l.id === lesson.id);
@@ -282,6 +285,7 @@ export default function LearningWorkspace(p: Props) {
     reviewHandled.current = reviewRequest;
   }, [reviewRequest, extraPracticeOpen]);
   const stale = !!result && (draft !== runCode || savedInput !== runInput);
+  const replayNote=staticReplayNote??(!stale&&result?.trace?.status==="unsupported"?result.trace.reason:undefined);
   const activeAIFocus =
     !flow.stale &&
     flow.task?.decision?.focus?.source === "execution" &&
@@ -636,6 +640,7 @@ export default function LearningWorkspace(p: Props) {
           </small>
           <h1>{lesson.title}</h1>
           <div className="lesson-learning-goal"><span>本节目标</span><p>{lessonIntroduction(lesson).goal}</p></div>
+          {lesson.practiceLevel&&<p className="practice-level-note">{lesson.practiceLevel==="independent"?"独立实践：自己组织完整程序，再用多组输入验证。":lesson.practiceLevel==="partial"?"补全练习：自己补出关键步骤，逐步减少对模板的依赖。":"引导练习：先读懂示例，再完成一次有依据的修改。"}</p>}
         </div>
         <div className="workspace-purpose-actions">
           {!activeMission && <button className="button primary" disabled={adopting || p.missions.busy} onClick={async()=>{
@@ -776,11 +781,7 @@ export default function LearningWorkspace(p: Props) {
               <ArrowRight size={14} />
             </button>
           </div>
-          <UnderstandingQuestion
-            question={plan.questions[0]}
-            record={study}
-            onSubmit={submitQuestion}
-          />
+          <p className="course-question-guide">先读懂基础，再动手验证。预测与追问由AI老师结合你的学习过程提出。</p>
           <button
             className="study-solution-button"
             onClick={() => setSolution((v) => !v)}
@@ -856,7 +857,7 @@ export default function LearningWorkspace(p: Props) {
                 setPane("visual");
               }}
             >
-              <span className="mode-desktop-label">我的代码动画</span><span className="mode-mobile-label">真实回放</span>
+              <span className="mode-desktop-label">{replayNote?"回放说明":"我的代码动画"}</span><span className="mode-mobile-label">{replayNote?"回放说明":"真实回放"}</span>
             </button>
             <button
               className={"mode-experiment " + (mode === "experiment" ? "selected" : "")}
@@ -877,7 +878,7 @@ export default function LearningWorkspace(p: Props) {
                     : "真实编译运行"}
             </span>
           </div>
-          <LessonGuide lesson={lesson} mode={mode} onPractice={openPractice} onObserve={()=>{setMode("visual");setPane("visual");setMobilePane("observe");}}/>
+          <LessonGuide lesson={lesson} mode={mode} hasReplay={result?.trace?.status==="available"&&result.trace.steps.length>0} replayNote={replayNote} onPractice={openPractice} onObserve={()=>{setMode("visual");setPane("visual");setMobilePane("observe");}}/>
           <div className="study-center-body" hidden={mode !== "visual"}>
             <LessonVisualization
               lesson={lesson}
@@ -888,7 +889,7 @@ export default function LearningWorkspace(p: Props) {
               onPosition={setPosition}
               playbackContext={`${pane}:${mode}:${visualFocus}:${thinking}:${flow.busy}`}
               onAsk={(text, stepIndex) => {
-                const details = lesson.index === 0 ? `文字：${options.text.slice(0,12)}${options.text.length>12?"…":""}` : lesson.index < 6 ? `${lesson.index >= 2 ? options.fixed ? "修正示例 · " : "初始示例 · " : ""}参数${options.value}` : undefined;
+                const details = lesson.language === "java" ? undefined : lesson.index === 0 ? `文字：${options.text.slice(0,12)}${options.text.length>12?"…":""}` : lesson.index < 6 ? `${lesson.index >= 2 ? options.fixed ? "修正示例 · " : "初始示例 · " : ""}参数${options.value}` : undefined;
                 setQuestionRequest(captureQuestion({ text, nonce: Date.now(), label: `${lesson.title} · 第${stepIndex + 1}步`, details, reference: { kind: "lesson", sceneId: scene.id, options, stepIndex } }));
                 setMobilePane("teach"); setVisualFocus(v => v + 1);
               }}
@@ -949,14 +950,10 @@ export default function LearningWorkspace(p: Props) {
             </div>
           )}
           <div className="study-code-body" hidden={mode !== "code"} style={{"--console-height":`${consoleHeight}px`} as CSSProperties}>
+            {replayNote&&<div className="replay-capability-note"><span>{replayNote}</span><button onClick={()=>{setMode("visual");setMobilePane("observe");}}>看课程演示</button></div>}
             <div className="study-editor-caption">
               <code>
-                main.{lesson.language === "python" ? "py" : lesson.language} ·{" "}
-                {lesson.language === "python"
-                  ? "Python 3"
-                  : lesson.language === "cpp"
-                    ? "C++17"
-                    : "C17"}
+                {sourceFileName(lesson.language)} · {languageVersions[lesson.language]}
               </code>
               <button aria-label="重置代码" onClick={() => setReset(true)}>
                 <RotateCcw size={15} />
@@ -1029,13 +1026,13 @@ export default function LearningWorkspace(p: Props) {
                     : "运行服务未就绪"}{" "}
                 · Ctrl + Enter
               </span>
-              <button
+              {!replayNote&&<button
                 className="code-animation-run"
                 disabled={running || flow.replyPending}
                 onClick={() => void run(true)}
               >
-                运行并看动画
-              </button>
+                运行并回放
+              </button>}
               <button
                 disabled={running || flow.replyPending}
                 onClick={() => void run()}
@@ -1082,7 +1079,7 @@ export default function LearningWorkspace(p: Props) {
                     {t.id==="tests"&&result&&<span className="console-test-count">{result.tests.filter(test=>test.passed).length}/{result.tests.length}</span>}
                   </button>
                 ))}
-                {result && (
+                {result?.trace?.status==="available" && result.trace.steps.length>0 && !stale && (
                   <button
                     onClick={() => {
                       setMode("replay");
@@ -1117,7 +1114,7 @@ export default function LearningWorkspace(p: Props) {
                       {result.tests.length}
                     </small>
                   </h3>
-                  {lesson.index === 5 && (
+                  {lesson.topic === "function" && (
                     <p>
                       检查会实际调用square，使用多组参数，而不只检查屏幕上是否出现25。
                     </p>
@@ -1130,7 +1127,7 @@ export default function LearningWorkspace(p: Props) {
                         </span>
                         样例{i + 1}
                         {test.input &&
-                          ` · ${lesson.index === 5 ? "参数" : "输入"} ${test.input}`}
+                          ` · ${lesson.topic === "function" ? "参数" : "输入"} ${test.input}`}
                       </summary>
                       <div>
                         <small>预期</small>

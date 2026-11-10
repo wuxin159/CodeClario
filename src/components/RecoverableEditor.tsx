@@ -1,6 +1,7 @@
 import { Component, lazy, Suspense, useMemo, useState, type ReactNode } from "react";
 import type CodeEditor from "./CodeEditor";
 import type { ComponentProps } from "react";
+import {languageName} from "../../shared/curriculum";
 
 type Props = ComponentProps<typeof CodeEditor>;
 // 懒加载失败只降级编辑区，保留导航、教学与受控草稿，避免整个学习页面白屏。
@@ -16,7 +17,7 @@ export default function RecoverableEditor(props: Props) {
   const [attempt, setAttempt] = useState(0);
   // 重试时重建 lazy 实例和错误边界，失败过的组件状态不能直接重复使用。
   const Editor = useMemo(() => lazy(() => import("./CodeEditor")), [attempt]);
-  const label = `${props.language === "c" ? "C 语言" : props.language === "cpp" ? "C++" : "Python"}代码编辑器`;
+  const label = `${languageName(props.language)}代码编辑器`;
   return (
     <EditorBoundary key={attempt} fallback={
       <div className="editor-recovery">

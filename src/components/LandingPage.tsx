@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowRight, ArrowUpRight, ChevronDown, Expand, Menu, Pause, Play, X } from "lucide-react";
 import BrandIdentity from "./BrandIdentity";
 import BubbleSortShowcase from "./BubbleSortShowcase";
+import LanguageMark from "./LanguageMark";
 import { languages, lessons, type Language } from "../../shared/curriculum";
 
 const screens = [
@@ -14,7 +15,7 @@ const screens = [
 const screenshotSize = { width: 3164, height: 1712 };
 const faqs = [
   ["完全没有编程基础，也可以开始吗？", "可以。点击“零基础？从第一课开始”，从输出、变量与条件逐步学习。学过for循环和数组或列表，再进入冒泡排序综合实践；首页也可以先观察动画，不需要安装开发工具。"],
-  ["图里的变化来自我的代码吗？", "首页排序动画是课程示例；课程中会区分示例与真实运行。受支持的C、C++和Python程序可以查看执行状态；C/C++使用同代码、同输入的隔离调试回放，并核对普通运行输出。超出采集范围时，普通运行结果仍然保留。"],
+  ["图里的变化来自我的代码吗？", "首页排序动画是课程示例；课程中会区分示例与真实运行。受支持的C、C++、Python和Java程序可以查看执行状态；C/C++和Java使用同代码、同输入的隔离调试回放，并核对普通运行输出。超出采集范围时，普通运行结果仍然保留。"],
   ["AI会直接帮我把答案写完吗？", "老师结合你的判断和实际结果解释、追问或引导观察。你可以自己修改和验证，也可以主动请求帮助。看过参考或接受帮助后的作答会保留相应标记。"],
   ["需要注册才能试用吗？", "首页冒泡排序演示无需登录，可以切换语言和数据、暂停或单步观察。登录后进入课程，代码草稿、真实运行和作答记录会分别保存。"],
 ];
@@ -174,10 +175,10 @@ export default function LandingPage({ authenticated, accountLoading = false, sta
           <div className="cine-hero-support">
             <p className="cine-hero-description cine-hero-enter">从一段冒泡排序开始，看懂循环与数组怎样配合。<br/>跟着AI的引导，动手修改，再验证自己的理解。</p>
             <div className="cine-actions cine-hero-enter">
-              <button className="cine-button cine-button-light" onClick={() => onStartLesson ? onStartLesson(`${homeLanguage}-19`) : onEnter()} disabled={accountLoading || startingLesson}>{startingLesson ? "正在进入课程…" : "从这一课开始"}<ArrowRight size={18}/></button>
-              <a className="cine-text-action" href="#home/demo">观察排序过程<ArrowUpRight size={17}/></a>
+              <button className="cine-button cine-button-light" onClick={() => onStartLesson ? onStartLesson(lessons.find(l=>l.language===homeLanguage&&l.topic==="bubble-sort")!.id) : onEnter()} disabled={accountLoading || startingLesson}>{startingLesson ? "正在进入课程…" : "从这一课开始"}<ArrowRight size={18}/></button>
+              <button className="cine-text-action" onClick={() => onStartLesson ? onStartLesson(`${homeLanguage}-1`) : onEnter()} disabled={accountLoading || startingLesson}>零基础？从第一课开始<ArrowUpRight size={17}/></button>
             </div>
-            <p className="cine-course-note">适合已学过for循环与数组的你<br/><button onClick={() => onStartLesson ? onStartLesson(`${homeLanguage}-1`) : onEnter()} disabled={accountLoading || startingLesson}>零基础？从第一课开始<ArrowUpRight size={12}/></button></p>
+            <p className="cine-course-note">适合已学过for循环与数组的你</p>
           </div>
         </div>
         </div>
@@ -186,7 +187,7 @@ export default function LandingPage({ authenticated, accountLoading = false, sta
 
       <div className="cine-opening-bottom cine-wide">
         <a className="cine-scroll" href="#home/preview"><ArrowDown size={17}/><span>看看如何学习</span></a>
-        <p>C / C++ / Python<span>·</span>{lessons.length}节基础课程</p>
+        <p>C / C++ / Python / Java<span>·</span>{lessons.length}节课程与实践</p>
         <button className="cine-motion-control" aria-pressed={motionOff} disabled={systemReduced} onClick={() => setPaused(!paused)} title={systemReduced ? "系统已启用减少动态效果" : undefined}>
           {motionOff ? <Play size={14}/> : <Pause size={14}/>}
           {systemReduced ? "已减少动态" : paused ? "恢复页面动效" : "暂停页面动效"}
@@ -248,10 +249,10 @@ export default function LandingPage({ authenticated, accountLoading = false, sta
 
 
       <section className="cine-courses cine-wide" id="home/courses" aria-labelledby="courses-title">
-        <div className="cine-head-row"><div><h2 id="courses-title" data-reveal>从第一行，<br/>走到自己的程序。</h2></div><p data-reveal>{lessons.length}节基础课程，沿着概念逐步展开。<br/>你可以跟着安排，也可以自主选课。</p></div>
-        <div className="cine-language-list">{languages.map(language=><button key={language.id} onClick={onEnter} disabled={accountLoading} data-reveal aria-label={"学习"+language.name}>
-          <span className="cine-language-symbol">{language.id==="python"?"Py":language.id==="cpp"?"C++":"C"}</span>
-          <span className="cine-language-copy"><b>{language.name}</b><span>{language.id==="c"?"从变量、循环到指针，理解数据怎样变化。":language.id==="cpp"?"从基础语法到容器和对象，读懂结构与状态。":"从第一行输出到函数和容器，把想法写成程序。"}</span><small>{lessons.filter(lesson=>lesson.language===language.id).length}节基础课程</small></span>
+        <div className="cine-head-row"><div><h2 id="courses-title" data-reveal>从第一行，<br/>走到自己的程序。</h2></div><p data-reveal>{lessons.length}节课程与实践，沿着概念逐步展开。<br/>你可以跟着安排，也可以自主选课。</p></div>
+        <div className="cine-language-list">{languages.map(language=><button key={language.id} onClick={()=>onStartLesson?onStartLesson(`${language.id}-1`):onEnter()} disabled={accountLoading || startingLesson} data-reveal aria-label={"学习"+language.name}>
+          <span className="cine-language-symbol"><LanguageMark language={language.id}/></span>
+          <span className="cine-language-copy"><b>{language.name}</b><span>{language.description}</span><small>{lessons.filter(lesson=>lesson.language===language.id).length}节课程与实践</small></span>
           <ArrowUpRight className="cine-language-arrow" size={36}/>
         </button>)}</div>
       </section>
@@ -266,7 +267,7 @@ export default function LandingPage({ authenticated, accountLoading = false, sta
       <section className="cine-close">
         <div className="cine-wide"><div><h2 data-reveal>下一次“原来如此”，<br/>从这里开始。</h2></div><button className="cine-button cine-button-light" onClick={onEnter} disabled={accountLoading}>开始学习<ArrowRight size={20}/></button></div>
       </section>
-      <footer className="cine-footer cine-wide"><a className="cine-brand" href="#home" aria-label="代码灵 CodeClario 返回顶部"><BrandIdentity/></a><p>让代码看得见，让学习有方向。</p><span>C17 · C++17 · Python 3</span></footer>
+      <footer className="cine-footer cine-wide"><a className="cine-brand" href="#home" aria-label="代码灵 CodeClario 返回顶部"><BrandIdentity/></a><p>让代码看得见，让学习有方向。</p><span>C17 · C++17 · Python 3 · Java 21</span></footer>
     </div>
     </main>
 

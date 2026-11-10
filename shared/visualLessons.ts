@@ -1,6 +1,7 @@
 import type { Lesson } from "./curriculum.ts";
 import type { Scene } from "./scenes.ts";
 import { sceneFrame, sequenceAt, objectLinksAt } from "./sceneMotion.ts";
+import {javaDepthExtensions} from "./javaDepthLessons.ts";
 
 export type VisualKind =
   | "output"
@@ -37,6 +38,10 @@ export type VisualLesson = {
   legend: string;
 };
 const common: Record<string, VisualLesson> = {
+  "java-reference": {kind:"instances",question:"两个引用，还是两个对象？",insight:"引用赋值复制关系；修改对象和重新给变量赋值是不同的动作。",legend:"左侧是变量，右侧是对象；相同箭头目标表示共享"},
+  "java-equality": {kind:"instances",question:"内容相同，是否就是同一个对象？",insight:"==比较引用身份，String.equals比较文字内容。",legend:"对象身份与字符内容分别比较"},
+  "practice-flow": {kind:"branch",question:"哪些数真正参与了累加？",insight:"循环走过整个范围，条件决定当前数字是否进入总和。",legend:"遍历 → 筛选 → 累加"},
+  "practice-array": {kind:"array",question:"全是负数，最大值应该从哪里开始？",insight:"候选值来自真实数据；每处理一个元素，就维护到目前为止的最大值。",legend:"读取新元素 → 比较 → 必要时更新候选"},
   "bubble-sort": {
     kind: "bubble", question: "一轮结束，哪些位置已经确定？",
     insight: "内层循环逐对比较，较大的元素向右移动；外层循环重复扫描，已就位的尾部逐轮扩大。",
@@ -254,6 +259,8 @@ const special: Record<string, VisualLesson> = {
   },
 };
 export function visualLesson(lesson: Lesson): VisualLesson {
+  const depth=javaDepthExtensions.find(e=>e.lesson.id===lesson.id);
+  if(depth)return {kind:"record",question:depth.demo.title,insight:depth.plan.takeaway,legend:"沿本课分镜观察关系、调用或路径的变化"};
   const spec =
     special[lesson.id] ??
     (Object.hasOwn(common, lesson.topic ?? "")

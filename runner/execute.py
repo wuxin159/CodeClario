@@ -2,6 +2,7 @@
 import json
 import os
 import resource
+import re
 import signal
 import subprocess
 import sys
@@ -11,17 +12,34 @@ import time
 LIMIT = 64 * 1024
 
 
-def limits(file_limit=256*1024):
+def java_command(main_class, tracer=False):
+    # 堆之外还有元空间、线程栈和代码缓存；分别收敛预算，不能只设置-Xmx。
+    return ['java', '-Xms8m', '-Xmx64m', '-Xss256k', '-XX:+UseSerialGC',
+            '-XX:ActiveProcessorCount=1', '-XX:MaxMetaspaceSize=64m',
+            '-XX:ReservedCodeCacheSize=32m', '-XX:CompressedClassSpaceSize=16m',
+            '-XX:-UsePerfData', '-Djava.io.tmpdir=/work', '-Dfile.encoding=UTF-8',
+            *(['--add-modules', 'jdk.jdi'] if tracer else []),
+            '-cp', '/work:/opt/codewise/java' if tracer else '/work', main_class]
+
+
+def compile_java(filename):
+    return execute(['javac', '-J-Xmx96m', '-J-XX:+UseSerialGC',
+                    '-J-XX:ActiveProcessorCount=1', '-J-XX:-UsePerfData',
+                    '-g', '--release', '21', filename], timeout=12, file_limit=8*1024*1024, cpu_seconds=8)
+
+
+def limits(file_limit=256*1024, cpu_seconds=3):
     resource.setrlimit(resource.RLIMIT_FSIZE, (file_limit, file_limit))
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
-    resource.setrlimit(resource.RLIMIT_CPU, (3, 3))
+    resource.setrlimit(resource.RLIMIT_CPU, (cpu_seconds, cpu_seconds))
 
 
-def execute(command, stdin="", timeout=6, output_limit=LIMIT, file_limit=256*1024):
+def execute(command, stdin="", timeout=6, output_limit=LIMIT, file_limit=256*1024, cpu_seconds=3):
     # 输出先落到受限临时文件再有界读取，避免学生程序把宿主进程的内存缓冲区写满。
     with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
+        # javac启动与泛型类型检查需要独立预算；学生程序仍使用默认3秒CPU上限。
         process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=out,
-                                   stderr=err, preexec_fn=lambda: limits(file_limit), start_new_session=True)
+                                   stderr=err, preexec_fn=lambda: limits(file_limit, cpu_seconds), start_new_session=True)
         timed_out = False
         try:
             process.communicate(stdin.encode(), timeout=timeout)
@@ -52,14 +70,21 @@ def interruption(result, phase):
 def main():
     request = json.load(sys.stdin)
     language, code = request["language"], request["code"]
-    if language not in ("c", "cpp", "python") or len(code) > 24000:
+    if language not in ("c", "cpp", "python", "java") or len(code) > 24000:
         raise ValueError("Unsupported language or oversized source")
     start = time.monotonic()
-    filename = "main.py" if language == "python" else "main." + language
+    filename = "Main.java" if language == "java" else "main.py" if language == "python" else "main." + language
     with open(filename, "w", encoding="utf-8") as source:
         source.write(code)
     compile_output = ""
-    if language != "python":
+    if language == 'java':
+        result = compile_java(filename)
+        compile_output = result['stderr']
+        if result['exitCode'] != 0 or result['timedOut']:
+            failure = interruption(result, 'compile')
+            return {**result, 'status': 'compile_timeout' if result['timedOut'] else 'compile_terminated' if failure else 'compile_error',
+                    'failure': failure, 'compileOutput': compile_output, 'durationMs': round((time.monotonic()-start)*1000), 'trace': []}
+    elif language != "python":
         compiler = "gcc" if language == "c" else "g++"
         standard = "-std=c17" if language == "c" else "-std=c++17"
         result = execute([compiler, standard, "-Wall", "-Wextra", "-O0", "-g", filename, "-o", "/work/program"], timeout=12,file_limit=8*1024*1024)
@@ -68,7 +93,7 @@ def main():
             failure = interruption(result, 'compile')
             return {**result, "status": "compile_timeout" if result['timedOut'] else "compile_terminated" if failure else "compile_error", "failure": failure, "compileOutput": compile_output,
                     "durationMs": round((time.monotonic() - start) * 1000), "trace": []}
-    command = ["python3", "-I", filename] if language == "python" else ["/work/program"]
+    command = java_command('Main') if language == 'java' else ["python3", "-I", filename] if language == "python" else ["/work/program"]
     trace = {'status':'unavailable','reason':'程序尚未正常运行完成，先检查错误；课程示例仍可查看。','steps':[]}
     result = None
     if language == 'python':
@@ -86,6 +111,20 @@ def main():
                 result = {**traced,'stdout':''}
     if result is None:
         result = execute(command, str(request.get("stdin", "")), timeout=4)
+    if language == 'java' and not result['timedOut'] and result['exitCode'] >= 0:
+        if re.search(r'\b(Thread|ExecutorService|Executors|parallelStream|CompletableFuture)\b', code):
+            trace = {'status': 'unsupported', 'reason': '当前Java回放支持单线程基础程序；并发程序保留普通运行结果。', 'steps': []}
+        else:
+            with open('/work/trace-input', 'w', encoding='utf-8') as stream:
+                stream.write(str(request.get('stdin', '')))
+            observed = execute(java_command('TraceMain', tracer=True), timeout=12, output_limit=220000, file_limit=2*1024*1024)
+            try:
+                trace = json.loads(observed['stdout'])
+                observed_output = trace.pop('finalOutput', '')
+                if trace.get('status') == 'available' and observed_output.replace('\r', '') != result['stdout'].replace('\r', ''):
+                    trace = {'status': 'unavailable', 'reason': 'Java调试回放与普通运行输出不同，不能据此解释状态。普通运行结果仍然保留。', 'steps': []}
+            except (ValueError, TypeError):
+                trace = {'status': 'unavailable', 'reason': '本次Java回放未完成，普通运行结果仍然保留。', 'steps': []}
     if language in ('c','cpp') and result['exitCode']==0 and not result['timedOut']:
         # GDB 是同源码、同输入的另一次隔离执行；只有输出一致时才提供调试状态用于观察。
         with open('/work/trace-input','w',encoding='utf-8') as f: f.write(str(request.get('stdin','')))
@@ -115,6 +154,15 @@ def main():
                                 '    raise ValueError("需要定义可调用的square函数")\n'
                                 'print(function(int(sys.stdin.read())))\n')
                 check_command = ["python3", "-I", "probe.py"]
+            elif language == 'java':
+                with open('Probe.java', 'w', encoding='utf-8') as probe:
+                    probe.write('public class Probe { public static void main(String[] args) { '
+                                'java.util.Scanner input = new java.util.Scanner(System.in); '
+                                'System.out.println(Main.square(input.nextInt())); } }')
+                compiled = compile_java('Probe.java')
+                if compiled['exitCode'] != 0 or compiled['timedOut']:
+                    check_error = '函数检查未通过：请在Main中定义static int square(int n)。\n' + compiled['stderr'][:2000]
+                check_command = java_command('Probe')
             else:
                 probe_name = "probe." + language
                 with open(probe_name, "w", encoding="utf-8") as probe:

@@ -5,6 +5,7 @@ import {
   type PublicUser,
 } from "../../shared/account";
 import { findLesson } from "../../shared/curriculum";
+import { clearScreenshotDrafts } from "../screenshotDrafts";
 
 export async function apiRequest(url: string, body?: unknown, method = "POST") {
   const response = await fetch(url, {
@@ -65,6 +66,7 @@ export function useLearningAccount() {
       // 切换账户时提高代次并取消旧保存计划，旧请求返回后不得覆盖新账户的页面状态。
       epoch.current++;
       clearTimeout(saveTimer.current);
+      if(identity.current && identity.current!==next?.id)clearScreenshotDrafts(identity.current);
       identity.current = next?.id ?? null;
       savedSignature.current = next
         ? JSON.stringify(draftPayload(learning, next.id))

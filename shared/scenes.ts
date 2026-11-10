@@ -2,9 +2,12 @@ import type { Lesson } from "./curriculum.ts";
 import { extensionFor } from "./courseExtensions.ts";
 import { upgradeVisualScene } from "./visualSceneUpgrades.ts";
 import { buildBubbleScene, type BubbleState } from "./bubbleSort.ts";
+import type {JavaConceptState} from "./javaConcepts.ts";
+import type {AuthoredCourse} from "./authoredCourse.ts";
 
 export type SceneOptions = { fixed: boolean; value: number; text: string };
 export type SceneStep = {
+  java?:JavaConceptState;
   bubble?: BubbleState;
   id: string;
   line: number;
@@ -53,10 +56,11 @@ export function buildScene(lesson: Lesson, raw: SceneOptions): Scene {
   const extended = extensionFor(lesson.id);
   if (extended)
     return upgradeVisualScene(lesson, {
-      ...extended.demo,
-      id: `scene-v1:${lesson.id}:authored`,
+      ...((raw.fixed&&(extended as AuthoredCourse).alternate)?(extended as AuthoredCourse).alternate!.demo:extended.demo),
+      id: `scene-v1:${lesson.id}:authored${raw.fixed&&(extended as AuthoredCourse).alternate?":alternate":""}`,
       version: "scene-v1",
     });
+  if(lesson.language==="java")throw new Error(`Java课程缺少示例场景：${lesson.id}`);
   const o = {
     ...raw,
     value: Number.isFinite(raw.value)

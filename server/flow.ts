@@ -1057,6 +1057,7 @@ async function decide(
     },
     language: lesson.language,
     task: lesson.task,
+    practiceLevel: lesson.practiceLevel??"guided",
     code: task.code,
     viewContext:
       isViewEvent(task.trigger) && task.viewContext
@@ -1068,7 +1069,7 @@ async function decide(
               // 讲解所看示例时同时给出它的源码，避免把示例行号套到学生编辑器的不同程序上。
               code: scene.code,
               parameters:
-                lesson.index < 6
+                lesson.language!=="java" && lesson.index < 6
                   ? lesson.index === 0
                     ? { text: task.viewContext.options.text }
                     : {
@@ -1231,9 +1232,11 @@ async function decide(
         model: config.model,
         messages,
         max_tokens: 1300,
+        temperature: 0.3,
         thinking: { type: "disabled" },
         response_format: { type: "json_object" },
-        ...(round < 2 ? { tools } : {}),
+        // 学生明确要求验证时先进入工具步骤；具体输入和理由仍由模型从审校候选中选择。
+        ...(round < 2 ? { tools, ...(diagnosticRequested&&round===0?{tool_choice:{type:"function",function:{name:"run_diagnostic_case"}}}:{}) } : {}),
       }),
       signal: controller.signal,
     });

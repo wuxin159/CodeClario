@@ -2,6 +2,9 @@ import type { Language, Lesson } from "./curriculum.ts";
 import type { Question } from "./teaching.ts";
 import type { SceneStep } from "./scenes.ts";
 import { bubbleExtensions } from "./bubbleLessons.ts";
+import {javaExtensions} from "./javaLessons.ts";
+import {practiceExtensions} from "./practiceLessons.ts";
+import {javaDepthExtensions} from "./javaDepthLessons.ts";
 
 type Quiz = Omit<Question, "id">;
 type DemoStep = [
@@ -2249,6 +2252,6 @@ const existingExtensions = definitions.map((d) => {
   };
   return { lesson, plan, demo: d.demo };
 });
-export const courseExtensions = [...existingExtensions, ...bubbleExtensions];
+export const courseExtensions = [...existingExtensions, ...bubbleExtensions, ...javaExtensions, ...practiceExtensions, ...javaDepthExtensions];
 export const extensionFor = (id: string) =>
   courseExtensions.find((item) => item.lesson.id === id);

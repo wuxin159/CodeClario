@@ -1,10 +1,11 @@
 import CodeMirror from "@uiw/react-codemirror";
 import { cpp } from "@codemirror/lang-cpp";
 import { python } from "@codemirror/lang-python";
+import { java } from "@codemirror/lang-java";
 import { Decoration, EditorView, type DecorationSet } from "@codemirror/view";
 import { StateEffect, StateField } from "@codemirror/state";
 import { useEffect, useRef } from "react";
-import { type Language } from "../../shared/curriculum";
+import { type Language,languageName } from "../../shared/curriculum";
 
 const markAI = StateEffect.define<number>();
 const aiHighlight = StateField.define<DecorationSet>({
@@ -53,7 +54,7 @@ export default function CodeEditor({
         view.dispatch({ effects: markAI.of(highlightLine ?? 0) });
       }}
       extensions={[
-        language === "python" ? python() : cpp(),
+        language === "python" ? python() : language === "java" ? java() : cpp(),
         EditorView.lineWrapping,
         aiHighlight,
       ]}
@@ -62,7 +63,7 @@ export default function CodeEditor({
         highlightActiveLine: true,
         autocompletion: true,
       }}
-      aria-label={`${language === "c" ? "C 语言" : language === "cpp" ? "C++" : "Python"}代码编辑器`}
+      aria-label={`${languageName(language)}代码编辑器`}
     />
   );
 }

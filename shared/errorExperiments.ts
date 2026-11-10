@@ -1,6 +1,8 @@
 import type { Lesson } from "./curriculum.ts";
 import { visualLesson } from "./visualLessons.ts";
 import { bubbleProgram, BUBBLE_INPUT } from "./bubbleSort.ts";
+import {javaErrorExperiment} from "./javaExperiments.ts";
+import {practiceErrorExperiment} from "./practiceExperiments.ts";
 export type ErrorExperiment = {
   id: string;
   title: string;
@@ -11,6 +13,8 @@ export type ErrorExperiment = {
   stdin: string;
 };
 export function errorExperiment(lesson: Lesson): ErrorExperiment {
+  if(lesson.topic?.startsWith("practice-"))return practiceErrorExperiment(lesson);
+  if(lesson.language==="java")return javaErrorExperiment(lesson);
   const py = lesson.language === "python",
     cpp = lesson.language === "cpp";
   const wrap = (body: string, extra = "") =>

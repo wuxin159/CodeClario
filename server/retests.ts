@@ -1,6 +1,7 @@
 import type { Lesson, Language } from "../shared/curriculum.ts";
 import type { Retest } from "../shared/flow.ts";
 import { bubbleProgram } from "../shared/bubbleSort.ts";
+import {javaRetestBank,javaRetestsFor} from "./javaRetests.ts";
 // 审校题及答案由程序持有；模型只能选择适用题目，前端公开结构不包含评分答案。
 type AuditedRetest = Retest & {
   correct: number;
@@ -524,7 +525,16 @@ for (const language of ["c", "cpp", "python"] as const) {
   second.id = `${language}-bubble-v2`;
   retestBank.push(second);
 }
+retestBank.push(...javaRetestBank);
+// 独立实践使用换场景的审校题，不退回到无关的赋值题。
+for(const language of ["c","cpp","python"] as const){
+  const py=language==="python";
+  retestBank.push(item(language,"practice-flow-check","这次只累加奇数",wrap(language,py?"total=0\nfor i in range(1,6):\n    if i%2!=0:\n        total+=i\nprint(total)":`int total=0; for(int i=1;i<=5;i++) if(i%2!=0) total+=i; ${out(language,"total")}`),"9",["6","15"],"筛选条件改变后，参与累加的是1、3、5。"));
+  retestBank.push(item(language,"practice-array-check","全负数中的最大值",wrap(language,py?"values=[-5,-2,-8]\nmaximum=values[0]\nfor value in values:\n    if value>maximum:\n        maximum=value\nprint(maximum)":`int values[]={-5,-2,-8}; int maximum=values[0]; for(int i=1;i<3;i++) if(values[i]>maximum) maximum=values[i]; ${out(language,"maximum")}`),"-2",["0","-5"],"候选来自首元素，再通过比较更新；不能用不在数据里的0替代。"));
+}
 export function retestsFor(lesson: Lesson) {
+  if(lesson.language==="java")return javaRetestsFor(lesson);
+  if(lesson.topic?.startsWith("practice-"))return retestBank.filter(r=>r.language===lesson.language&&r.id.startsWith(`${lesson.language}-${lesson.topic}-check-`));
   // Output-only entry lessons have not introduced assignment yet. Use their
   // reviewed course question instead of testing an unrelated prerequisite.
   if (lesson.index === 0) return [];

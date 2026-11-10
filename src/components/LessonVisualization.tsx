@@ -1,3 +1,6 @@
+import {languageName} from "../../shared/curriculum";
+import {extensionFor} from "../../shared/courseExtensions";
+import type {AuthoredCourse} from "../../shared/authoredCourse";
 import { useEffect, useRef, useState, type ReactNode, type CSSProperties } from "react";
 import {
   ChevronLeft,
@@ -131,7 +134,8 @@ export default function LessonVisualization({
         课程示例 · 用固定代码与图形讲解本节概念
       </p>
       {lesson.topic === "bubble-sort" && <div className="bubble-lesson-variants" role="group" aria-label="冒泡排序示例版本"><button aria-pressed={!options.fixed} onClick={() => onOptions({ ...options, fixed: false })}>先看一轮</button><button aria-pressed={options.fixed} onClick={() => onOptions({ ...options, fixed: true })}>完整排序</button></div>}
-      {lesson.index < 6 && (
+      {(extensionFor(lesson.id) as AuthoredCourse|undefined)?.alternate&&<div className="bubble-lesson-variants" role="group" aria-label="本课对照路径"><button aria-pressed={!options.fixed} onClick={()=>onOptions({...options,fixed:false})}>{(extensionFor(lesson.id) as AuthoredCourse).demoLabel??"常规路径"}</button><button aria-pressed={options.fixed} onClick={()=>onOptions({...options,fixed:true})}>{(extensionFor(lesson.id) as AuthoredCourse).alternate!.label}</button></div>}
+      {lesson.language !== "java" && lesson.index < 6 && (
         <div className="scene-parameters">
           {lesson.index >= 2 && (
             <div className="scene-variants" aria-label="示例版本">
@@ -200,11 +204,7 @@ export default function LessonVisualization({
           progress={reduced ? 0 : frame.progress}
           reduced={reduced}
           language={
-            lesson.language === "python"
-              ? "Python"
-              : lesson.language === "cpp"
-                ? "C++"
-                : "C"
+            languageName(lesson.language)
           }
         />
         </div>

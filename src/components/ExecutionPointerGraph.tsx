@@ -65,6 +65,7 @@ export default function ExecutionPointerGraph({
   if (!nodes.length && current) nodes = [current];
   const height = Math.max(154, nodes.length * 80 + 26),
     middle = height / 2 - 4;
+  const objectName=(node?:TraceValue)=>node?.address?.startsWith("对象")?node.address:node?.name;
   const index = nodes.findIndex((n) => n.address === pointer.target),
     nextIndex = nodes.findIndex((n) => n.address === nextPointer?.target);
   const y = index >= 0 ? 50 + index * 80 : middle,
@@ -87,7 +88,7 @@ export default function ExecutionPointerGraph({
       className="execution-pointer"
       viewBox={"0 0 640 " + height}
       role="img"
-      aria-label={pointer.name + "指向" + (current?.name ?? "已采集地址")}
+      aria-label={pointer.name + "指向" + (objectName(current) ?? "已采集对象")}
     >
       <defs>
         <marker
@@ -111,12 +112,12 @@ export default function ExecutionPointerGraph({
         stroke="#a8c5ec"
       />
       <text x="28" y={middle - 17} className="execution-svg-label">
-        {clip(pointer.name + " · 保存位置", 10)}
+        {clip(pointer.name + (pointer.kind==="reference"?" · 引用关系":" · 保存位置"), 10)}
       </text>
       <text x="28" y={middle + 17} className="execution-svg-value">
         {pointer.target === "0x0"
-          ? "空指针"
-          : clip("指向 " + (current?.name ?? "所指对象"))}
+          ? pointer.kind==="reference"?"空引用":"空指针"
+          : clip("指向 " + (objectName(current) ?? "所指对象"))}
       </text>
       {pointer.target !== "0x0" && (
         <>
@@ -159,7 +160,7 @@ export default function ExecutionPointerGraph({
             strokeWidth={i === index ? 2 : 1}
           />
           <text x="384" y={42 + i * 80} className="execution-svg-label">
-            {clip(node.name, 13)}
+            {clip(objectName(node)??node.name, 13)}
           </text>
           <text x="384" y={68 + i * 80} className="execution-svg-value">
             {clip(node.value)}

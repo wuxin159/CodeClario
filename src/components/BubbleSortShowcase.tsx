@@ -1,3 +1,4 @@
+import {languages, languageName} from "../../shared/curriculum";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Pause, Play, RotateCcw } from "lucide-react";
 import type { Language } from "../../shared/curriculum";
@@ -50,7 +51,7 @@ export default function BubbleSortShowcase({ language, onLanguageChange, paused 
   return <div className="bubble-showcase" ref={root} id="home/demo" data-ui aria-label="循环与数组：冒泡排序课程演示">
     <div className="bubble-showcase-heading"><strong>冒泡排序<span>循环 × 数组</span></strong><span>可操作课程示例</span></div>
     <div className="bubble-showcase-options">
-      <div className="bubble-languages" role="group" aria-label="排序演示语言">{(["c", "cpp", "python"] as const).map(value => <button key={value} aria-pressed={language === value} onClick={() => change(() => onLanguageChange(value))}>{value === "c" ? "C" : value === "cpp" ? "C++" : "Python"}</button>)}</div>
+      <div className="bubble-languages" role="group" aria-label="排序演示语言">{languages.map(({id:value}) => <button key={value} aria-pressed={language === value} onClick={() => change(() => onLanguageChange(value))}>{languageName(value)}</button>)}</div>
       <label><span className="sr-only">选择排序示例</span><select aria-label="选择排序示例" value={dataset} onChange={event => change(() => setDataset(Number(event.target.value)))}>{BUBBLE_DATASETS.map((sample, index) => <option key={sample.label} value={index}>{sample.label}</option>)}</select></label>
       <label><span className="sr-only">排序演示范围</span><select aria-label="排序演示范围" value={onePass ? "one" : "complete"} onChange={event => change(() => setOnePass(event.target.value === "one"))}><option value="complete">完整排序</option><option value="one">只做一轮</option></select></label>
     </div>
@@ -58,7 +59,7 @@ export default function BubbleSortShowcase({ language, onLanguageChange, paused 
       <BubbleSortDiagram scene={scene} time={playback.time} reduced={motionReduced} onInspect={() => playback.seek(frame.index)}/>
       <div className={`bubble-source ${codeOpen ? "is-open" : ""}`}>
         <button className="bubble-code-toggle" aria-expanded={codeOpen} onClick={() => setCodeOpen(value => !value)}>查看对应代码 · 第 {frame.from.line} 行<ChevronRight size={14}/></button>
-        <div className="bubble-source-title">{language === "python" ? "Python" : language === "cpp" ? "C++" : "C"} · 排序核心</div>
+        <div className="bubble-source-title">{languageName(language)} · 排序核心</div>
         <pre ref={codeRef} tabIndex={0} aria-label="冒泡排序示例代码">{scene.code.split("\n").map((line, index) => <span key={index} className={(swap ? index + 1 >= 6 && index + 1 <= 8 : index + 1 === frame.from.line) ? "is-current" : ""} aria-current={index + 1 === frame.from.line ? "step" : undefined}><i>{index + 1}</i><code>{line}</code></span>)}</pre>
       </div>
     </div>

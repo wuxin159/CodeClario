@@ -3,7 +3,7 @@ import {teachingPlan} from "../shared/teaching.ts";
 import {lessonIntroduction} from "../shared/lessonIntroduction.ts";
 import {conceptCards} from "./knowledgeCards.ts";
 
-export const knowledgeVersion="course-kb-20261109-v2";
+export const knowledgeVersion="course-kb-20261110-v4";
 export type KnowledgeHit={id:string;lessonId:string;title:string;excerpt:string;score:number;kind:"lesson"|"concept";concepts:string[]};
 const stop=new Set(["代码","当前","学生","问题","运行","结果","什么","一个","为什么","怎么","这个","那个","应该","可以","需要","理解"]);
 export function knowledgeTokens(text:string) {
