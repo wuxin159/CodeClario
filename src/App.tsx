@@ -51,12 +51,16 @@ import {useWorkspaceEntry} from "./hooks/useWorkspaceEntry";
 import {useBriefMotion} from "./hooks/useBriefMotion";
 import SelectionMarker from "./components/SelectionMarker";
 import {useArrivalMotion} from "./hooks/useArrivalMotion";
+import {useSharedNavigation} from "./hooks/useSharedNavigation";
+import RunReceipt from "./components/RunReceipt";
 
 type Page = "home" | "dashboard" | "courses" | "lab" | "progress";
 const dateKey = (date = new Date()) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 const langName = (id: Language) =>
   languages.find((item) => item.id === id)!.name;
+// 手机按当前窗格选择可见表面，避免对隐藏的代码区制作空快照。
+const workspaceSurface=()=>['.study-center','.teaching-conversation'].map(selector=>document.querySelector<HTMLElement>(selector)).find(node=>node?.offsetWidth&&node.offsetHeight)??null;
 const navItems = [
   { id: "dashboard" as Page, title: "我的学习", icon: LayoutDashboard },
   { id: "courses" as Page, title: "课程中心", icon: Compass },
@@ -78,6 +82,10 @@ export default function App() {
   const currentAccountId = useRef(user?.id);
   currentAccountId.current = user?.id;
   const workspaceEntry = useWorkspaceEntry(currentAccountId);
+  const sharedNavigation=useSharedNavigation(user?.id);
+  const catalogReturn=useRef<{y:number;filter:Language|'all';chapter:string;query:string;lessonId:string}|null>(null);
+  const [archivedRun,setArchivedRun]=useState<{owner:string;lessonId:string;result:RunResult}|null>(null);
+  useEffect(()=>{catalogReturn.current=null;setArchivedRun(null);},[user?.id]);
   const missions = useMissions(user?.id);
   useEffect(() => {
     void missions.refresh();
@@ -251,12 +259,33 @@ export default function App() {
     if(page==='home'&&value!=='home')workspaceEntry.enter(commit);
     else {workspaceEntry.cancel();commit();}
   }
-  function openLesson(id: string) {
-    setLessonId(id);
-    setState((value) => ({ ...value, lastLesson: id }));
-    navigate("lab");
-    setSearchOpen(false);
-    setQuery("");
+  function openLesson(id: string,source?:HTMLElement) {
+    const update=()=>{
+      setLessonId(id);
+      setState((value) => ({ ...value, lastLesson: id }));
+      navigate("lab");setSearchOpen(false);setQuery("");
+    };
+    if(page==='courses'&&source)sharedNavigation.run({surface:source,title:source.querySelector<HTMLElement>('.lesson-title b')},update,()=>({surface:workspaceSurface(),title:document.querySelector<HTMLElement>('.mission-workspace-header h1')}),'lesson');
+    else update();
+  }
+  function returnToCatalog(){
+    const saved=catalogReturn.current;
+    sharedNavigation.run({surface:workspaceSurface(),title:document.querySelector<HTMLElement>('.mission-workspace-header h1')},()=>{
+      if(saved){setFilter(saved.filter);setChapter(saved.chapter);setQuery(saved.query);}
+      navigate('courses');
+    },()=>{
+      const row=document.querySelector<HTMLElement>(`[data-lesson-id="${CSS.escape(saved?.lessonId??lessonId)}"]`);
+      window.scrollTo({top:saved?.y??0,behavior:'instant'});
+      const rect=row?.getBoundingClientRect();
+      if(rect&&(rect.bottom>innerHeight||rect.top<0))row?.scrollIntoView({block:'center',behavior:'instant'});
+      return {surface:row,title:row?.querySelector('.lesson-title b')};
+    },'lesson');
+  }
+  function archiveRun(result:RunResult,source:HTMLElement){
+    if(!user||!result.passed)return;
+    sharedNavigation.run({surface:source.closest<HTMLElement>('.study-center')??source,title:document.querySelector<HTMLElement>('.mission-workspace-header h1')??source.querySelector<HTMLElement>('.receipt-title strong')},()=>{
+      setArchivedRun({owner:user.id,lessonId,result});navigate('progress');
+    },()=>({surface:document.querySelector('.progress-page .run-receipt'),title:document.querySelector<HTMLElement>('.progress-page .receipt-title strong')}),'record');
   }
   function recordRun(_result: RunResult) {
     if (user)
@@ -264,7 +293,7 @@ export default function App() {
         .refreshLearning(user.id)
         .catch((error) => setToast(error.message));
   }
-  async function startLesson(id: string) {
+  async function startLesson(id: string,source?:HTMLElement) {
     if (!user || startingLesson) return;
     const owner = user.id;
     setStartingLesson(id);
@@ -274,7 +303,10 @@ export default function App() {
       if (currentAccountId.current !== owner) return;
       const ready = missions.active?.lessonId === id || await missions.adopt(id);
       if (currentAccountId.current !== owner) return;
-      if (ready) openLesson(id);
+      if (ready) {
+        if(page==='courses'&&source)catalogReturn.current={y:window.scrollY,filter,chapter,query,lessonId:id};
+        openLesson(id,source);
+      }
       else setToast("这节课暂未设为当前任务，请稍后重试。");
     } catch (e) { setToast((e as Error).message); }
     finally { setStartingLesson(null); }
@@ -695,8 +727,9 @@ export default function App() {
                     <button
                       className="lesson-row"
                       key={lesson.id}
+                      data-lesson-id={lesson.id}
                       disabled={!!startingLesson || missions.busy}
-                      onClick={() => void startLesson(lesson.id)}
+                      onClick={event => void startLesson(lesson.id,event.currentTarget)}
                     >
                       <span
                         className={`lesson-order ${state.completed.includes(lesson.id) ? "done" : ""}`}
@@ -783,7 +816,8 @@ export default function App() {
               }))
             }
             onOpen={openLesson}
-            onBack={() => navigate("courses")}
+            onBack={returnToCatalog}
+            onArchive={archiveRun}
             onRun={recordRun}
             study={state.study[currentLesson.id]}
             onStudyChange={() => {
@@ -819,6 +853,7 @@ export default function App() {
             <p className="page-description">
               查看当前账户的课程进度、运行次数与最近练习。
             </p>
+            {archivedRun?.owner===user?.id&&archivedRun&&<RunReceipt lesson={findLesson(archivedRun.lessonId)!} result={archivedRun.result} archived onOpen={()=>setAttemptDetail(archivedRun.result.id)}/>}
             <div className="stats-grid">
               <Stat
                 icon={<BookOpen />}

@@ -1,0 +1,51 @@
+/* 原生共享快照仅用于课程/成果两个明确交接，不接管播放器或编辑器的生命周期。 */
+html[data-shared-navigation]::view-transition { pointer-events:none; }
+html[data-shared-navigation]::view-transition-image-pair(cc-shared-surface) { overflow:clip; border-radius:14px; }
+html[data-shared-navigation]::view-transition-group(cc-shared-surface),
+html[data-shared-navigation]::view-transition-group(cc-shared-title) { animation-duration:620ms; animation-timing-function:cubic-bezier(.22,1,.36,1); }
+html[data-shared-navigation]::view-transition-old(cc-shared-surface) { animation:continuity-out 180ms ease both; }
+html[data-shared-navigation]::view-transition-new(cc-shared-surface) { height:100%; object-fit:cover; object-position:left top; animation:continuity-in 360ms ease 80ms both; }
+html[data-shared-navigation]::view-transition-old(cc-shared-title),
+html[data-shared-navigation]::view-transition-new(cc-shared-title) { height:100%; object-fit:contain; object-position:left center; }
+html[data-shared-navigation]::view-transition-old(root) { animation:continuity-out 180ms ease both; }
+html[data-shared-navigation]::view-transition-new(root) { animation:continuity-in 360ms ease 100ms both; }
+@keyframes continuity-out { to { opacity:0; } }
+@keyframes continuity-in { from { opacity:0; } to { opacity:1; } }
+
+.app-shell .run-receipt { display:flex; align-items:center; gap:24px; min-width:0; padding:22px 24px; margin:20px 0 28px; border:1px solid #d9e3f0; border-radius:14px; background:#fff; color:#243349; }
+.app-shell .receipt-copy { min-width:0; flex:1; }
+.app-shell .receipt-status { display:flex; align-items:center; gap:6px; color:#346d55; font-size:12px; }
+.app-shell .receipt-title { display:flex; align-items:center; gap:8px; margin:6px 0; }
+.app-shell .receipt-title strong { font-size:18px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.app-shell .receipt-title .language-mark { flex:none; }
+.app-shell .receipt-detail,.app-shell .receipt-output small { color:#68768a; font-size:12px; }
+.app-shell .receipt-output { max-width:24%; min-width:80px; }
+.app-shell .receipt-output pre { margin:5px 0 0; padding:0; max-height:100px; overflow:auto; background:transparent; color:#263c59; font:14px/1.5 Consolas,monospace; white-space:pre-wrap; overflow-wrap:anywhere; }
+.app-shell .run-receipt > button { display:flex; align-items:center; gap:8px; flex:none; padding:10px 12px; border:0; border-radius:8px; background:#edf3fd; color:#245dd8; font:inherit; font-size:13px; }
+.app-shell .run-receipt > button:hover { background:#e3edfc; }
+/* 课堂中的收据保持一行，输出区继续拥有独立高度；完整成果在学习记录展开。 */
+.app-shell .classroom-workspace .study-center > .run-receipt { flex:none; margin:0; padding:10px 16px; gap:12px; border:0; border-bottom:1px solid #dfe5ee; border-radius:0; }
+.app-shell .classroom-workspace .receipt-copy { display:flex; align-items:center; flex-wrap:wrap; gap:6px 12px; }
+.app-shell .classroom-workspace .receipt-title { margin:0; max-width:260px; }
+.app-shell .classroom-workspace .receipt-title strong { font-size:13px; }
+.app-shell .classroom-workspace .receipt-detail,.app-shell .classroom-workspace .receipt-output,.app-shell .classroom-workspace .receipt-title .language-mark { display:none; }
+.evidence-connector { position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:1000; }
+.evidence-connector path { stroke:#397bd7; stroke-width:1.8; stroke-linecap:round; stroke-dasharray:1; }
+@media(prefers-reduced-motion:no-preference) {
+  .app-shell .study-center > .run-receipt { animation:receipt-arrive 360ms cubic-bezier(.22,1,.36,1) backwards; }
+}
+@keyframes receipt-arrive { from { opacity:0; transform:translateY(-5px); } to { opacity:1; transform:none; } }
+@media(max-width:700px) {
+  .app-shell .run-receipt { flex-wrap:wrap; gap:14px; padding:18px; }
+  .app-shell .receipt-copy { flex-basis:100%; }
+  .app-shell .receipt-title strong { white-space:normal; font-size:16px; }
+  .app-shell .receipt-output { flex:1; max-width:100%; }
+  .app-shell .classroom-workspace .study-center > .run-receipt { padding:8px 10px; flex-wrap:nowrap; }
+  .app-shell .classroom-workspace .receipt-copy { flex-basis:auto; }
+  .app-shell .classroom-workspace .receipt-title { display:none; }
+  .app-shell .classroom-workspace .run-receipt > button { min-height:36px; padding:6px 8px; font-size:12px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  html::view-transition-group(cc-shared-surface),html::view-transition-group(cc-shared-title) { animation-duration:1ms; }
+  .evidence-connector { display:none; }
+}

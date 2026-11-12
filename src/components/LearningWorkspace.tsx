@@ -3,6 +3,8 @@ import SelectControl from "./SelectControl";
 import LanguageMark from "./LanguageMark";
 import SelectionMarker from "./SelectionMarker";
 import {useBriefMotion} from "../hooks/useBriefMotion";
+import {useEvidenceCue} from "../hooks/useEvidenceCue";
+import RunReceipt from "./RunReceipt";
 import {
   ArrowLeft,
   ArrowRight,
@@ -95,6 +97,7 @@ type Props = {
   onOpen: (id: string) => void;
   onBack: () => void;
   onRun: (r: RunResult) => void;
+  onArchive: (result:RunResult,source:HTMLElement) => void;
   completed: string[];
   status: { runner: boolean; ai: boolean; checked: boolean };
   notify: (v: string) => void;
@@ -107,6 +110,7 @@ type Props = {
 };
 
 export default function LearningWorkspace(p: Props) {
+  const pointToEvidence=useEvidenceCue();
   const { lesson, draft, savedInput, userId, status, notify } = p;
   const staticReplayNote=replayLimitation(lesson.language,draft);
   const plan = teachingPlan(lesson);
@@ -202,8 +206,12 @@ export default function LearningWorkspace(p: Props) {
   ]);
   function focusEvidence(
     focus: NonNullable<import("../../shared/flow").TeachingDecision["focus"]>,
+    source?:HTMLElement,
   ) {
     if (focus.source === "execution") {
+      if(!result){notify('正在恢复运行记录，请稍后再定位。');return;}
+      const target=result?.trace?.steps[(focus.step??0)-1];
+      if(stale||!target||(focus.line&&target.line!==focus.line)){notify('这条标注与当前运行不一致，请重新运行后查看。');return;}
       setReplayFocus({
         step: focus.step!,
         variable: focus.variable,
@@ -230,11 +238,10 @@ export default function LearningWorkspace(p: Props) {
       setPane("visual");
     }
     setMobilePane("observe");
-    requestAnimationFrame(() =>
-      document
-        .getElementById("task-workbench")
-        ?.scrollIntoView({ block: "start", behavior: "smooth" }),
-    );
+    requestAnimationFrame(()=>{
+      if(window.innerWidth<=1000)document.getElementById('task-workbench')?.scrollIntoView({block:'start',behavior:'instant'});
+      pointToEvidence(source,()=>document.querySelector<HTMLElement>(focus.source==='execution'?'.execution-replay .replay-source > .active':'.motion-source-line[aria-current="step"]')??document.querySelector<HTMLElement>('.replay-current-line,.lesson-visualization .visual-heading'));
+    });
   }
   const [options, setOptions] = useState(defaultSceneOptions(lesson));
   const [position, setPosition] = useState(0);
@@ -887,6 +894,7 @@ export default function LearningWorkspace(p: Props) {
             </span>
           </div>
           <LessonGuide lesson={lesson} mode={mode} hasReplay={result?.trace?.status==="available"&&result.trace.steps.length>0} replayNote={replayNote} onPractice={openPractice} onObserve={()=>{setMode("visual");setPane("visual");setMobilePane("observe");}}/>
+          {result?.passed&&!stale&&(mode==='code'||mode==='replay')&&<RunReceipt lesson={lesson} result={result} onOpen={source=>p.onArchive(result,source)}/>}
           <div className="study-center-body" hidden={mode !== "visual"}>
             <LessonVisualization
               lesson={lesson}

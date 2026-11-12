@@ -60,7 +60,7 @@ export default function TeachingConversation({
   missions: Missions;
   userId?: string;
   onRun: () => void;
-  onFocus: (focus: NonNullable<TeachingDecision["focus"]>) => void;
+  onFocus: (focus: NonNullable<TeachingDecision["focus"]>,source?:HTMLElement) => void;
   onHome: () => void;
   onRequireAuth: () => void;
   onFlush: () => Promise<unknown>;
@@ -233,7 +233,7 @@ export default function TeachingConversation({
       {current && decision.focus && !f.stale && (
         <button
           className="teacher-inline-action"
-          onClick={() => onFocus(decision.focus!)}
+          onClick={event => onFocus(decision.focus!,event.currentTarget)}
         >
           <LocateFixed size={14} />
           {decision.focus.source === "execution"

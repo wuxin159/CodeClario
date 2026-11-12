@@ -17,6 +17,8 @@ export function useArrivalMotion(key:string,selector:string) {
         const node=entry.target as HTMLElement;
         if(seen.has(node))return;
         seen.add(node);pending.delete(node);observer.unobserve(node);
+        // 跨页共享快照负责这次入场，避免快照结束后再触发一次错峰导致内容闪回。
+        if(document.documentElement.dataset.sharedNavigation)return;
         // 延时按本次可见的一批计算，89课不会累积成长时间等待。
         const group=node.matches('.course-card')?'cards':node.matches('.lesson-row')?'rows':'regions';
         const order=batches.get(group)??0;

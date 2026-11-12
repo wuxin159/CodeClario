@@ -136,9 +136,6 @@ export default function LessonVisualization({
         </div>
         <div className="classroom-visual-actions"><span className="visual-step-number">{stepLabel}</span><button aria-pressed={showSource} onClick={()=>setShowSource(v=>!v)}>{showSource?"收起代码":"显示代码"}</button>{ask && <button onClick={() => ask(`请结合当前课程示例第${frame.index + 1}步，讲讲「${frame.from.phase}」为什么这样变化。`)}>问问这一步</button>}</div>
       </div>
-      <p className="visual-provenance">
-        课程示例 · 用固定代码与图形讲解本节概念
-      </p>
       {lesson.topic === "bubble-sort" && <div className="bubble-lesson-variants" role="group" aria-label="冒泡排序示例版本"><button aria-pressed={!options.fixed} onClick={() => onOptions({ ...options, fixed: false })}>先看一轮</button><button aria-pressed={options.fixed} onClick={() => onOptions({ ...options, fixed: true })}>完整排序</button></div>}
       {(extensionFor(lesson.id) as AuthoredCourse|undefined)?.alternate&&<div className="bubble-lesson-variants" role="group" aria-label="本课对照路径"><button aria-pressed={!options.fixed} onClick={()=>onOptions({...options,fixed:false})}>{(extensionFor(lesson.id) as AuthoredCourse).demoLabel??"常规路径"}</button><button aria-pressed={options.fixed} onClick={()=>onOptions({...options,fixed:true})}>{(extensionFor(lesson.id) as AuthoredCourse).alternate!.label}</button></div>}
       {lesson.language !== "java" && lesson.index < 6 && (
