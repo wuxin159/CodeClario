@@ -15,6 +15,7 @@ import type { Missions } from "../hooks/useMissions";
 import AIConnection from "./AIConnection";
 import DailyWelcome from "./DailyWelcome";
 import { useDailyPlan } from "../hooks/useDailyPlan";
+import SelectControl from "./SelectControl";
 
 export const phaseNames = {
   predict: "学习基础",
@@ -183,16 +184,16 @@ export default function TaskHome({
                     </label>
                     <label>
                       目前的起点
-                      <select
-                        aria-label="目前的起点"
+                      <SelectControl
+                        label="目前的起点"
                         value={experience}
-                        onChange={(e) =>
-                          setExperience(e.target.value as typeof experience)
-                        }
-                      >
-                        <option value="new">刚开始接触编程</option>
-                        <option value="some">写过一些代码，想查漏补缺</option>
-                      </select>
+                        full disabled={m.busy}
+                        onValueChange={value=>setExperience(value as typeof experience)}
+                        options={[
+                          {value:'new',label:'刚开始接触编程',description:'从基础语法和第一段程序开始'},
+                          {value:'some',label:'写过一些代码，想查漏补缺',description:'先检查概念理解，再安排合适的练习'},
+                        ]}
+                      />
                     </label>
                     {experience==="some"&&<div className="entry-diagnostic">
                       <div>

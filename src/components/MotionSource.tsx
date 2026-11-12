@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ease, lerp } from "../../shared/sceneMotion";
+import {useBriefMotion} from "../hooks/useBriefMotion";
 
 export default function MotionSource({
   code,
@@ -8,6 +9,7 @@ export default function MotionSource({
   progress,
   language,
   reduced = false,
+  stepKey,
 }: {
   code: string;
   fromLine: number;
@@ -15,8 +17,10 @@ export default function MotionSource({
   progress: number;
   language: string;
   reduced?: boolean;
+  stepKey?: number;
 }) {
   const source = useRef<HTMLPreElement>(null);
+  const beat=useBriefMotion(`${code}:${stepKey??fromLine}`,540,!reduced);
   const [rows, setRows] = useState<{ top: number; height: number }[]>([]);
   useLayoutEffect(() => {
     const node = source.current;
@@ -50,7 +54,7 @@ export default function MotionSource({
   const a = rows[fromLine - 1],
     b = rows[toLine - 1] ?? a;
   return (
-    <div className="scene-source motion-source">
+    <div className="scene-source motion-source" data-step-motion={beat}>
       <div className="scene-source-caption">{language} · 课程示例片段</div>
       <pre ref={source} tabIndex={0} role="region" aria-label="课程示例代码">
         {a && (

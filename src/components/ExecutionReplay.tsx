@@ -2,7 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import type { RunResult } from "../../shared/curriculum";
 import { useScenePlayback } from "../hooks/useScenePlayback";
+import {useReducedMotion} from "../hooks/useReducedMotion";
+import SelectControl from "./SelectControl";
 import ExecutionDiagram from "./ExecutionDiagram";
+import {useBriefMotion} from "../hooks/useBriefMotion";
 
 export default function ExecutionReplay({
   result,
@@ -19,10 +22,8 @@ export default function ExecutionReplay({
   context: string;
   onViewedStep?: (index: number) => void;
 }) {
-  const [position, setPosition] = useState(0),
-    [reduced, setReduced] = useState(
-      () => matchMedia("(prefers-reduced-motion: reduce)").matches,
-    );
+  const [position, setPosition] = useState(0);
+  const reduced = useReducedMotion();
   const source = useRef<HTMLDivElement>(null);
   const [sourceOpen,setSourceOpen]=useState(()=>!matchMedia("(max-width:1000px)").matches);
   const sourceChoice=useRef(false);
@@ -53,6 +54,7 @@ export default function ExecutionReplay({
   }, [focus?.nonce]);
   const step = steps[position],
     previous = steps[Math.max(0, position - 1)];
+  const stepMotion=useBriefMotion(`${result?.id}:${position}`,540);
   useEffect(
     () => onViewedStep?.(position),
     [position, result?.id, onViewedStep],
@@ -94,7 +96,7 @@ export default function ExecutionReplay({
       </div>
     );
   return (
-    <div className="execution-replay">
+    <div className="execution-replay" data-step-motion={stepMotion}>
       <div className="replay-provenance">
         <b>学生代码 · 真实执行回放</b>
           <small>绑定本次代码与标准输入</small>
@@ -131,25 +133,7 @@ export default function ExecutionReplay({
         <span>
           {position + 1} / {steps.length}
         </span>
-        <select
-          aria-label="真实回放速度"
-          value={playback.speed}
-          onChange={(e) => playback.setSpeed(Number(e.target.value))}
-        >
-          {[0.5, 1, 2, 4].map((v) => (
-            <option key={v} value={v}>
-              {v}×
-            </option>
-          ))}
-        </select>
-        <label>
-          <input
-            type="checkbox"
-            checked={reduced}
-            onChange={(e) => setReduced(e.target.checked)}
-          />
-          减少动效
-        </label>
+        <SelectControl label="真实回放速度" compact value={String(playback.speed)} onValueChange={value=>playback.setSpeed(Number(value))} options={[0.5,1,2,4].map(v=>({value:String(v),label:`${v}×`}))}/>
       </div>
       <input
         type="range"

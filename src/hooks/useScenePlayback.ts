@@ -22,6 +22,7 @@ export function useScenePlayback({
   const clock = useRef(position),
     committed = useRef(position),
     target = useRef(0);
+  const playEnd = useRef<number | null>(null);
   const speedRef = useRef(speed),
     callback = useRef(onPosition);
   speedRef.current = speed;
@@ -84,7 +85,7 @@ export function useScenePlayback({
           ? 0
           : (Math.min(80, now - last) / SCENE_SEGMENT_MS) * speedRef.current;
       last = now;
-      const end = mode === "play" ? count - 1 : target.current;
+      const end = mode === "play" ? (playEnd.current ?? count - 1) : target.current;
       const direction = end >= clock.current ? 1 : -1;
       const next =
         direction > 0
@@ -115,11 +116,19 @@ export function useScenePlayback({
     setMode("seek");
   };
   const play = () => {
+    playEnd.current = null;
     if (reduced) {
       seek(Math.min(count - 1, Math.floor(clock.current) + 1));
       return;
     }
     if (clock.current >= count - 1) publish(0);
+    setMode("play");
+  };
+  const playTo = (position: number) => {
+    // 首页开场只播放一次交换；正常播放仍可从这里走到完整示例结尾。
+    const end = clampTime(position, count);
+    if (reduced || end <= clock.current) return;
+    playEnd.current = end;
     setMode("play");
   };
   const toggle = () => {
@@ -136,5 +145,6 @@ export function useScenePlayback({
     move,
     toggle,
     play,
+    playTo,
   };
 }

@@ -1,0 +1,35 @@
+/* 共用表单控件：控件保持安静，蓝色只用于焦点和实际选中项。 */
+.cc-select { display:inline-flex; min-width:0; max-width:100%; vertical-align:middle; font:inherit; }
+.cc-select[data-full="true"] { display:flex; width:100%; }
+.cc-select .cc-select-trigger { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; min-width:0; min-height:44px; padding:10px 12px; border:1px solid #dce2e9; border-radius:8px; background:#fff; color:#34475e; font:inherit; font-size:14px; line-height:1.5; text-align:left; cursor:pointer; transition:border-color 160ms ease,background-color 160ms ease,box-shadow 160ms ease; }
+.cc-select[data-compact="true"] .cc-select-trigger { min-height:36px; padding:6px 10px; font-size:13px; }
+.cc-select .cc-select-trigger:hover:not(:disabled) { border-color:#aebdce; background:#fcfdff; }
+.cc-select .cc-select-trigger:focus-visible,.cc-select .cc-select-trigger[aria-expanded="true"] { outline:0; border-color:#80a4d8; box-shadow:0 0 0 3px #eaf1fb; }
+.cc-select .cc-select-trigger:disabled { opacity:.5; cursor:default; }
+.cc-select-value { display:flex; align-items:center; gap:8px; min-width:0; }
+.cc-select-value > span:last-child { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.cc-select-caret { flex:none; color:#7a8a9e; transition:transform 180ms ease; }
+.cc-select-trigger[aria-expanded="true"] .cc-select-caret { transform:rotate(180deg); }
+.cc-select-icon { display:flex; width:20px; height:20px; align-items:center; justify-content:center; flex:none; }
+.cc-select-icon > .language-mark.language-logo.small,.app-shell .cc-select-icon > .language-mark.language-logo.small { width:19px; height:19px; }
+.cc-select-menu { z-index:1200; box-sizing:border-box; overflow:auto; overscroll-behavior:contain; padding:5px; border:1px solid #dce3eb; border-radius:10px; background:#fff; color:#34475e; font:14px/1.5 "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; box-shadow:0 8px 24px #233e5d18; animation:cc-select-in 160ms cubic-bezier(.22,1,.36,1) both; scrollbar-width:thin; scrollbar-color:#c6d2df transparent; }
+.cc-select-option { display:flex; align-items:center; gap:10px; min-height:42px; padding:9px 10px; border-radius:6px; box-sizing:border-box; cursor:pointer; transition:background-color 100ms ease; }
+.cc-select-option.is-active { background:#f1f5fa; }
+.cc-select-option[aria-selected="true"] { color:#245cb4; background:#edf3fc; }
+.cc-select-option[aria-disabled="true"] { opacity:.4; cursor:default; }
+.cc-option-copy { display:grid; flex:1; gap:3px; min-width:0; overflow-wrap:anywhere; }
+.cc-option-copy small { color:#748399; font-size:12px; line-height:1.5; }
+.cc-option-check { width:16px; height:16px; flex:none; }
+@keyframes cc-select-in { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
+.cc-select-menu[data-side="top"] { transform-origin:bottom; }
+.goal-form .cc-select { margin-top:2px; }
+.workspace-toolbar .cc-select { min-width:138px; }
+.chapter-filter .cc-select { min-width:180px; }
+.scene-speed .cc-select,.replay-controls .cc-select { min-width:78px; }
+.bubble-showcase-options .cc-select { width:120px; }
+.study-coach-context .cc-select { margin-top:7px; }
+.study-save[data-state] { display:inline-flex; align-items:center; gap:6px; padding:5px 7px; font-size:12px; line-height:1.5; color:#6c7b8e; background:transparent; border:0; white-space:nowrap; }
+.study-save[data-state="saved"] > svg { color:#668776; }
+.study-save[data-state="saving"] > svg { color:#7f91a6; }
+@media(max-width:760px) { .cc-select[data-compact="true"] .cc-select-trigger { min-height:44px; }.bubble-showcase-options .cc-select { width:100%; }.cc-select-menu { max-width:calc(100vw - 16px); }.workspace-toolbar .cc-select { min-width:124px; } }
+@media(prefers-reduced-motion:reduce) { .cc-select-menu { animation:none; }.cc-select .cc-select-trigger,.cc-select-caret,.cc-select-option { transition:none; } }

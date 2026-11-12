@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import type { TraceStep, TraceValue } from "../../shared/flow";
 import ExecutionPointerGraph from "./ExecutionPointerGraph";
+import SelectControl from "./SelectControl";
+import SelectionMarker from "./SelectionMarker";
+import {useBriefMotion} from "../hooks/useBriefMotion";
 import {
   observedValues,
   flattenedValues,
@@ -29,6 +32,15 @@ export default function ExecutionDiagram({
     all = flattenedValues(roots),
     op = observedOperation(code, step, after);
   const scopeLabel = step.scope === "<module>" || step.scope === "<program>" ? "主程序" : step.scope;
+  const beat=useBriefMotion(`${position}:${step.scope}`,540);
+  const prior=position>0?steps[position-1]:undefined;
+  // 只强调相邻同作用域、同调用栈内采集到的值差异，跨调用不把同名变量误认为更新。
+  const comparable=prior&&prior.event!=='return'&&prior.scope===step.scope&&JSON.stringify(prior.stack)===JSON.stringify(step.stack);
+  const priorValues=new Map((comparable?flattenedValues(observedValues(prior)):[]).map(node=>[node.name,node]));
+  const changed=(node:TraceValue,name=node.name)=>{
+    const before=priorValues.get(name);
+    return !!comparable&&(!before||before.value!==node.value)&&(!before?.address||!node.address||before.address===node.address);
+  };
   const nextPoint = steps[position + 1],
     // 输出只取相邻已采集状态的实际差异，不根据源码语句自行推测会打印什么。
     outputChanges = !!nextPoint && nextPoint.output !== step.output;
@@ -91,6 +103,7 @@ export default function ExecutionDiagram({
           (next && next.value !== node.value ? "will-change" : "")
         }
         key={node.name}
+        data-value-change={changed(node)}
         onClick={() => setInspected(inspected === node.name ? null : node.name)}
         title={node.type + " " + node.name + " = " + node.value}
       >
@@ -110,8 +123,10 @@ export default function ExecutionDiagram({
       className="execution-diagram"
       aria-label="自己代码的执行图形"
       data-position={position}
+      data-step-motion={beat}
     >
-      <nav aria-label="执行图形观察方式">
+      <nav aria-label="执行图形观察方式" className="ui-marker-group execution-view-tabs">
+        <SelectionMarker selection={view} selector={'button[aria-pressed="true"]'}/>
         {[
           ["values", "变量与运算"],
           ["calls", "函数调用"],
@@ -289,17 +304,7 @@ export default function ExecutionDiagram({
           {pointers.length > 1 && (
             <label className="observed-pointer-choice">
               观察指向关系{" "}
-              <select
-                aria-label="选择观察的变量"
-                value={pointer?.name}
-                onChange={(e) => setPointerName(e.target.value)}
-              >
-                {pointers.map((p) => (
-                  <option key={p.name} value={p.name}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+              <SelectControl label="选择观察的变量" compact value={pointer?.name??''} onValueChange={setPointerName} options={pointers.map(p=>({value:p.name,label:p.name}))}/>
             </label>
           )}
           {pointer && (
@@ -329,7 +334,7 @@ export default function ExecutionDiagram({
                   <div className="observed-members">
                     {node.children?.length ? (
                       node.children.map((child) => (
-                        <div key={child.name}>
+                        <div key={child.name} data-value-change={changed(child,node.name+(child.name.startsWith('[')?'':'.')+child.name)}>
                           <span>{child.name}</span>
                           <strong>{clip(child.value, 34)}</strong>
                           {child.children && (

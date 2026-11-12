@@ -1,0 +1,80 @@
+/* 首页控件共用节奏；文字副本只负责过渡，尺寸和可访问名称保持稳定。 */
+.cinematic-landing { --control-ease:cubic-bezier(.22,1,.36,1); --control-time:320ms; }
+.cinematic-landing .control-label { display:inline-grid; overflow:hidden; vertical-align:middle; font:inherit; line-height:1.5; }
+.cinematic-landing .control-label > span { grid-area:1/1; font:inherit; transition:transform var(--control-time) var(--control-ease); }
+.cinematic-landing .control-label > span:last-child { transform:translateY(115%); user-select:none; pointer-events:none; }
+.cinematic-landing .motion-arrow { display:inline-grid; overflow:hidden; width:var(--arrow-size,18px); height:var(--arrow-size,18px); flex:none; vertical-align:middle; }
+.cinematic-landing .motion-arrow > span { display:flex; grid-area:1/1; transition:transform var(--control-time) var(--control-ease); }
+.cinematic-landing .motion-arrow > span:last-child { transform:translateX(-130%); }
+.cinematic-landing .motion-arrow.is-diagonal > span:last-child { transform:translate(-130%,130%); }
+.cinematic-landing .motion-arrow svg { display:block; width:100%; height:100%; transform:none; }
+.cinematic-landing :is(button,a):focus-visible .control-label > span:first-child { transform:translateY(-115%); }
+.cinematic-landing :is(button,a):focus-visible .control-label > span:last-child { transform:none; }
+.cinematic-landing :is(button,a):focus-visible .motion-arrow > span:first-child { transform:translateX(130%); }
+.cinematic-landing :is(button,a):focus-visible .motion-arrow.is-diagonal > span:first-child { transform:translate(130%,-130%); }
+.cinematic-landing :is(button,a):focus-visible .motion-arrow > span:last-child { transform:none; }
+@media(hover:hover) and (pointer:fine) {
+  .cinematic-landing :is(button,a):not(:disabled):hover .control-label > span:first-child { transform:translateY(-115%); }
+  .cinematic-landing :is(button,a):not(:disabled):hover .control-label > span:last-child { transform:none; }
+  .cinematic-landing :is(button,a):not(:disabled):hover .motion-arrow > span:first-child { transform:translateX(130%); }
+  .cinematic-landing :is(button,a):not(:disabled):hover .motion-arrow.is-diagonal > span:first-child { transform:translate(130%,-130%); }
+  .cinematic-landing :is(button,a):not(:disabled):hover .motion-arrow > span:last-child { transform:none; }
+  .cinematic-landing .cine-language-list > button:hover .language-logo { transform:translateY(-4px); }
+  .cinematic-landing .cine-language-list > button:hover .cine-language-copy > span { color:#3f5c83; }
+  .cinematic-landing .cine-thumbnails button:hover img { transform:translateY(-3px); }
+}
+.cinematic-landing .cine-button,.cinematic-landing .cine-enter,.cinematic-landing .cine-text-action { transition:background-color 180ms ease,color 180ms ease,transform 160ms var(--control-ease); }
+.cinematic-landing :is(.cine-button,.cine-enter,.cine-text-action,.cine-menu):active:not(:disabled) { transform:scale(.97); }
+.cinematic-landing .cine-menu { transition:transform 160ms var(--control-ease); }
+.cinematic-landing .cine-language-list .language-logo,.cinematic-landing .cine-thumbnails img { transition:transform 280ms var(--control-ease),opacity 180ms ease; }
+.cinematic-landing .cine-language-copy > span { transition:color 180ms ease; }
+
+.cine-motion-nav { position:relative; }
+.cinematic-landing .cine-motion-nav a::after { display:none; }
+.cine-nav-marker { position:absolute; left:0; top:0; width:1px; height:2px; background:#245dd8; pointer-events:none; transform-origin:left center; transform:translate(var(--nav-marker-x,0px),var(--nav-marker-y,0px)) scaleX(var(--nav-marker-width,0)); opacity:0; transition:transform 280ms var(--control-ease),opacity 140ms ease; }
+.cine-motion-nav[data-marker="visible"] .cine-nav-marker { opacity:1; }
+
+.bubble-languages { position:relative; isolation:isolate; }
+.cinematic-landing .bubble-languages button { position:relative; z-index:1; width:64px; display:flex; justify-content:center; background:transparent; font-weight:500; }
+.cinematic-landing .bubble-languages button[aria-pressed="true"] { background:transparent; font-weight:500; }
+.language-active-shape { position:absolute; left:0; top:0; width:var(--language-width,64px); height:var(--language-height,36px); border-radius:6px; background:#eaf1fc; transform:translate(var(--language-x,0px),var(--language-y,0px)); transition:transform 300ms var(--control-ease); pointer-events:none; }
+
+.motion-word { display:inline-block; overflow:hidden; vertical-align:bottom; padding-bottom:.07em; margin-bottom:-.07em; }
+.motion-word > span { display:block; }
+@keyframes control-word-in { from { transform:translateY(110%); opacity:.35; } to { transform:none; opacity:1; } }
+@media(prefers-reduced-motion:no-preference) {
+  .cinematic-landing:not(.motion-off) .cine-title-line > span { animation:none; }
+  .cinematic-landing:not(.motion-off) .cine-title-line .motion-word > span { animation:control-word-in 650ms var(--control-ease) both; animation-delay:var(--word-delay,0ms); }
+  .cinematic-landing:not(.motion-off) .is-visible .motion-word > span { animation:control-word-in 620ms var(--control-ease) both; animation-delay:var(--word-delay,0ms); }
+}
+
+.cinematic-landing .cine-faq-response { display:block; visibility:hidden; opacity:0; transform:translateY(9px); transition:opacity 180ms ease,transform 280ms var(--control-ease),visibility 0s linear 180ms; }
+.cinematic-landing .cine-faq-response.is-open { visibility:visible; opacity:1; transform:none; transition-delay:0s; }
+.cinematic-landing .cine-faq-list button { transition:color 180ms ease,transform 180ms var(--control-ease); }
+.cinematic-landing .cine-faq-list button > svg { transition:transform 260ms var(--control-ease); }
+.cinematic-landing .cine-faq-dot { transition:background-color 180ms ease,transform 180ms ease; }
+.cinematic-landing .cine-faq-list button[aria-expanded="true"] .cine-faq-dot { transform:scale(1.2); }
+.cine-lightbox { animation:control-backdrop-in 180ms ease both; }
+.cine-lightbox > div { animation:control-panel-in 280ms var(--control-ease) both; }
+@keyframes control-backdrop-in { from { opacity:0; } to { opacity:1; } }
+@keyframes control-panel-in { from { transform:translateY(8px) scale(.99); } to { transform:none; } }
+@media(max-width:760px) {
+  .cinematic-landing .cine-faq-response { display:grid; grid-template-rows:0fr; position:static; width:auto; padding:0; opacity:0; transform:none; transition:grid-template-rows 300ms var(--control-ease),opacity 180ms ease,visibility 0s linear 300ms; }
+  .cinematic-landing .cine-faq-response.is-open { grid-template-rows:1fr; opacity:1; transition-delay:0s; }
+  .cine-faq-response-inner { min-height:0; overflow:hidden; }
+  .cine-faq-response-inner > p { padding:4px 22px 18px 19px; }
+  .cinematic-landing .cine-nav nav { display:flex; visibility:hidden; pointer-events:none; opacity:0; transform:translateY(-8px) scale(.98); transform-origin:top right; transition:transform 240ms var(--control-ease),opacity 160ms ease,visibility 0s linear 240ms; }
+  .cinematic-landing .cine-nav nav.is-open { visibility:visible; pointer-events:auto; opacity:1; transform:none; transition-delay:0s; }
+  .cinematic-landing .cine-language-list .motion-arrow { width:22px; height:22px; }
+}
+
+/* 暂停或系统减少动效时，所有文字始终保留一份可见内容。 */
+.cinematic-landing.motion-off .control-label > span:first-child { transform:none!important; }
+.cinematic-landing.motion-off .control-label > span:last-child { transform:translateY(115%)!important; }
+.cinematic-landing.motion-off .motion-arrow > span:first-child { transform:none!important; }
+.cinematic-landing.motion-off .motion-arrow > span:last-child { transform:translateX(-130%)!important; }
+@media(prefers-reduced-motion:reduce) {
+  .cinematic-landing .control-label > span:first-child,.cinematic-landing .motion-arrow > span:first-child { transform:none!important; }
+  .cinematic-landing .control-label > span:last-child { transform:translateY(115%)!important; }
+  .cinematic-landing .motion-arrow > span:last-child { transform:translateX(-130%)!important; }
+}

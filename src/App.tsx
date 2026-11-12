@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import BrandIdentity from "./components/BrandIdentity";
 import LanguageMark from "./components/LanguageMark";
+import SelectControl from "./components/SelectControl";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -46,6 +47,10 @@ import { useMissions } from "./hooks/useMissions";
 import TaskHome from "./components/TaskHome";
 import MissionHistory from "./components/MissionHistory";
 import LandingPage from "./components/LandingPage";
+import {useWorkspaceEntry} from "./hooks/useWorkspaceEntry";
+import {useBriefMotion} from "./hooks/useBriefMotion";
+import SelectionMarker from "./components/SelectionMarker";
+import {useArrivalMotion} from "./hooks/useArrivalMotion";
 
 type Page = "home" | "dashboard" | "courses" | "lab" | "progress";
 const dateKey = (date = new Date()) =>
@@ -72,6 +77,7 @@ export default function App() {
   const { state, setState, user } = account;
   const currentAccountId = useRef(user?.id);
   currentAccountId.current = user?.id;
+  const workspaceEntry = useWorkspaceEntry(currentAccountId);
   const missions = useMissions(user?.id);
   useEffect(() => {
     void missions.refresh();
@@ -89,6 +95,9 @@ export default function App() {
     const path = location.hash.split("/")[1];
     return findLesson(path)?.id || "c-1";
   });
+  const pageMotion=useBriefMotion(page==='lab'?`lab:${lessonId}`:page,280,page!=='home'&&workspaceEntry.phase==='idle');
+  const arrivalRoot=useArrivalMotion(`${page}:${page==='lab'?lessonId:''}:${user?.id??'guest'}`,
+    '.courses-page > h1,.courses-page > .page-description,.course-grid > .course-card,.lesson-list > .lesson-row,.mission-workspace-header,.learning-grid > .teaching-conversation,.learning-grid > .study-center,.task-home-heading,.daily-welcome,.task-home-columns > section,.task-home-aside');
   const [status, setStatus] = useState({
     runner: false,
     ai: false,
@@ -183,6 +192,7 @@ export default function App() {
   }, [page, lessonId]);
   useEffect(() => {
     const listener = () => {
+      workspaceEntry.cancelPending();
       const [value, id] = location.hash.slice(1).split("/");
       if (value === "discover") {
         location.hash = "courses";
@@ -233,9 +243,13 @@ export default function App() {
   }, []);
 
   function navigate(value: Page) {
-    setPage(value);
-    setMobileNav(false);
-    window.scrollTo({ top: 0, behavior: "instant" });
+    const commit = () => {
+      setPage(value);
+      setMobileNav(false);
+      window.scrollTo({ top: 0, behavior: "instant" });
+    };
+    if(page==='home'&&value!=='home')workspaceEntry.enter(commit);
+    else {workspaceEntry.cancel();commit();}
   }
   function openLesson(id: string) {
     setLessonId(id);
@@ -315,6 +329,7 @@ export default function App() {
     return (
       <>
         <LandingPage
+          leaving={workspaceEntry.phase==='leaving'}
           authenticated={!!user}
           accountLoading={account.loading}
           startingLesson={!!startingLesson}
@@ -345,7 +360,7 @@ export default function App() {
     );
 
   return (
-    <div className={`app-shell ${page === "lab" ? "is-workspace" : ""}`}>
+    <div ref={arrivalRoot} className={`app-shell ${page === "lab" ? "is-workspace" : ""} ${workspaceEntry.phase==='arriving'?'workspace-arriving':''}`} data-page-motion={pageMotion}>
       {mobileNav && (
         <div className="sidebar-scrim" onClick={() => setMobileNav(false)} />
       )}
@@ -362,12 +377,14 @@ export default function App() {
           </span>
         </a>
         <div className="sidebar-scroll" role="region" aria-label="课程导航与学习概览" tabIndex={0}>
-          <nav aria-label="主导航">
+          <nav aria-label="主导航" className="ui-marker-group workspace-navigation">
+            <SelectionMarker selection={page} selector="button.active"/>
             {navItems.map((item) => (
               <button
                 key={item.id}
                 aria-label={item.title}
                 title={item.title}
+                aria-current={page===item.id?'page':undefined}
                 className={`nav-item ${page === item.id ? "active" : ""}`}
                 onClick={() =>
                   item.id === "lab"
@@ -623,7 +640,8 @@ export default function App() {
                 </span>
               </div>
               <div className="catalog-toolbar">
-                <div className="filter-tabs" aria-label="课程语言筛选">
+                <div className="filter-tabs ui-marker-group" aria-label="课程语言筛选">
+                  <SelectionMarker selection={filter} selector="button.selected"/>
                   {[{ id: "all", name: "全部语言" }, ...languages].map(
                     (language) => (
                       <button
@@ -651,27 +669,7 @@ export default function App() {
               <div className="chapter-filter">
                 <label>
                   知识模块
-                  <select
-                    aria-label="筛选知识模块"
-                    value={chapter}
-                    onChange={(e) => setChapter(e.target.value)}
-                  >
-                    <option value="all">全部模块</option>
-                    {[
-                      ...new Set(
-                        lessons
-                          .filter(
-                            (item) =>
-                              filter === "all" || item.language === filter,
-                          )
-                          .map((item) => teachingPlan(item).chapter),
-                      ),
-                    ].map((name) => (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    ))}
-                  </select>
+                  <SelectControl label="筛选知识模块" value={chapter} onValueChange={setChapter} options={[{value:'all',label:'全部模块'},...[...new Set(lessons.filter(item=>filter==='all'||item.language===filter).map(item=>teachingPlan(item).chapter))].map(name=>({value:name,label:name}))]}/>
                 </label>
                 <span>
                   {

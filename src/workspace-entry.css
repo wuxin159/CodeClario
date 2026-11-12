@@ -1,0 +1,20 @@
+/* 只在从首页进入时编排一次，不给学习空间内的每次切页加等待。 */
+@media(prefers-reduced-motion:no-preference) {
+  .cinematic-landing.workspace-leaving { animation:workspace-fade-out 150ms ease both; pointer-events:none; }
+  .workspace-arriving > .main-shell > .topbar { animation:workspace-header-in 300ms cubic-bezier(.22,1,.36,1) both; }
+  .workspace-arriving > .main-shell > :is(main,.learning-workspace) { animation:workspace-content-in 400ms cubic-bezier(.22,1,.36,1) 60ms both; }
+  .account-overlay { animation:workspace-overlay-in 180ms ease both; }
+  .account-overlay .account-dialog { animation:workspace-dialog-in 260ms cubic-bezier(.22,1,.36,1) both; }
+}
+@media(min-width:1001px) and (prefers-reduced-motion:no-preference) {
+  .workspace-arriving > .sidebar { animation:workspace-sidebar-in 360ms cubic-bezier(.22,1,.36,1) both; }
+}
+@keyframes workspace-fade-out { to { opacity:0; } }
+@keyframes workspace-header-in { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
+@keyframes workspace-sidebar-in { from { opacity:.55; transform:translateX(-12px); } to { opacity:1; transform:none; } }
+@keyframes workspace-content-in { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+@keyframes workspace-overlay-in { from { opacity:0; } to { opacity:1; } }
+@keyframes workspace-dialog-in { from { opacity:.5; transform:translateY(8px) scale(.985); } to { opacity:1; transform:none; } }
+@media(prefers-reduced-motion:reduce) {
+  .workspace-arriving > .sidebar,.workspace-arriving > .main-shell > .topbar,.workspace-arriving > .main-shell > :is(main,.learning-workspace),.account-overlay,.account-overlay .account-dialog { animation:none!important; }
+}

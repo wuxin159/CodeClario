@@ -19,6 +19,10 @@ import "./navigation.css";
 import "./learning-journey.css";
 import "./ai-learning.css";
 import "./java-depth.css";
+import "./control-motion.css";
+import "./workspace-entry.css";
+import "./select-controls.css";
+import "./workspace-motion.css";
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

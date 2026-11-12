@@ -1,0 +1,80 @@
+/* 工作区只在实际操作后短暂响应，正文和输入区不因动效被重建。 */
+.app-shell { --workspace-ease:cubic-bezier(.22,1,.36,1); }
+.app-shell .ui-marker-group { position:relative; isolation:isolate; }
+/* 旧课堂布局的高优先级 static 会让选中线借用祖先定位，必须在本栏建立坐标系。 */
+.app-shell .learning-workspace.classroom-workspace .study-mode-tabs.ui-marker-group { position:relative; }
+.app-shell .ui-marker-line { overflow:clip; }
+.app-shell .ui-marker-group > button { position:relative; z-index:1; }
+.app-shell .ui-marker-group > .workspace-marker[data-ready] { display:block; position:absolute; top:0; left:0; z-index:0; width:var(--marker-width,0px); height:var(--marker-height,0px); border-radius:8px; background:var(--marker-fill,#eae9e5); pointer-events:none; opacity:0; transform:translate(var(--marker-x,0px),var(--marker-y,0px)); transition:opacity 120ms ease; }
+.app-shell .ui-marker-group > .workspace-marker[data-animate="true"] { transition:transform 260ms var(--workspace-ease),opacity 120ms ease; }
+.app-shell .ui-marker-group > .workspace-marker[data-ready="true"] { opacity:1; }
+/* 横线高度直接对齐，仅横向滑动，避免跨布局出现斜着飞的轨迹。 */
+.app-shell .ui-marker-group > .workspace-marker[data-variant="line"] { top:var(--marker-y,0px); transform:translateX(var(--marker-x,0px)); z-index:2; border-radius:1px; background:var(--marker-line,#245dd8); }
+.app-shell .ui-marker-group:has(> .workspace-marker[data-ready="true"]) > button:is(.active,.selected,[aria-pressed="true"]) { background:transparent; border-bottom-color:transparent; }
+.app-shell .ui-marker-line:has(> .workspace-marker[data-ready="true"]) > button::after { content:none; }
+.app-shell .study-console-tabs { --marker-line:#a6c5fa; }
+.app-shell .execution-view-tabs { --marker-fill:#e8f1fd; }
+.app-shell .sidebar { transition:transform 240ms var(--workspace-ease); }
+.app-shell .nav-item > svg,.app-shell .lesson-open > svg,.app-shell .course-card-bottom svg { transition:transform 200ms var(--workspace-ease),color 160ms ease; }
+.app-shell .course-card { transition:transform 280ms var(--workspace-ease),border-color 180ms ease,background-color 180ms ease; }
+.app-shell .course-card:hover { border-color:#b9c9df; }
+.app-shell .course-card:hover .course-card-bottom svg,.app-shell .lesson-row:hover .lesson-open > svg { transform:translateX(3px); }
+.app-shell .nav-item:hover > svg { transform:translateX(2px); }
+.app-shell .lesson-row { transition:background-color 160ms ease,border-color 160ms ease; }
+.app-shell .lesson-row:hover:not(:disabled) { background-color:#f4f7fc; }
+.app-shell .study-mode-tabs button,.app-shell .study-console-tabs button,.app-shell .task-mobile-navigation button { transition:color 160ms ease,background-color 160ms ease; }
+.app-shell .study-mode-tabs button:active,.app-shell .study-console-tabs button:active { transform:translateY(1px); }
+
+@media(prefers-reduced-motion:no-preference) {
+  .app-shell[data-page-motion="1"] > .main-shell > main:not(.courses-page,.classroom-workspace,.task-home) { animation:workspace-page-a 280ms var(--workspace-ease) both; }
+  .app-shell[data-page-motion="2"] > .main-shell > main:not(.courses-page,.classroom-workspace,.task-home) { animation:workspace-page-b 280ms var(--workspace-ease) both; }
+  .classroom-workspace[data-panel-motion="1"] .study-center > :is(.study-center-body,.execution-replay,.study-code-body):not([hidden]) { animation:workspace-pane-a 220ms ease both; }
+  .classroom-workspace[data-panel-motion="2"] .study-center > :is(.study-center-body,.execution-replay,.study-code-body):not([hidden]) { animation:workspace-pane-b 220ms ease both; }
+  /* 用户希望更清楚的区域展开；视野内分批播放，不隐藏尚未滚到的课程。 */
+  .app-shell [data-arrival="true"] { animation:workspace-arrival 620ms var(--workspace-ease) var(--arrival-delay,0ms) backwards; }
+  .app-shell .learning-grid > .teaching-conversation[data-arrival="true"] { animation-name:workspace-teacher-arrival; }
+  .app-shell .learning-grid > .study-center[data-arrival="true"] { animation-name:workspace-stage-arrival; }
+  .app-shell .course-card:hover { transform:translateY(-4px); }
+
+  /* 完整步骤切换才强调当前行；逐帧播放只更新原来的连续高亮位置。 */
+  .app-shell :is(.motion-source,.execution-replay)[data-step-motion="1"] :is(.motion-source-line[aria-current="step"] > code,.replay-source > .active > code),
+  .app-shell .execution-diagram[data-step-motion="1"] [data-value-change="true"] > strong,
+  .app-shell .lesson-visualization[data-step-motion="1"] :is(.loop-number-track .current > b,.ls-cells > .selected > b,.concept-process li[aria-current="step"] > span) { animation:workspace-ink-a 540ms var(--workspace-ease); }
+  .app-shell :is(.motion-source,.execution-replay)[data-step-motion="2"] :is(.motion-source-line[aria-current="step"] > code,.replay-source > .active > code),
+  .app-shell .execution-diagram[data-step-motion="2"] [data-value-change="true"] > strong,
+  .app-shell .lesson-visualization[data-step-motion="2"] :is(.loop-number-track .current > b,.ls-cells > .selected > b,.concept-process li[aria-current="step"] > span) { animation:workspace-ink-b 540ms var(--workspace-ease); }
+  .app-shell .lesson-visualization[data-output-motion="1"] .motion-output > pre,
+  .app-shell .execution-diagram[data-step-motion="1"] [data-value-change="true"] { animation:workspace-write-a 540ms ease; }
+  .app-shell .lesson-visualization[data-output-motion="2"] .motion-output > pre,
+  .app-shell .execution-diagram[data-step-motion="2"] [data-value-change="true"] { animation:workspace-write-b 540ms ease; }
+  .classroom-workspace[data-console-motion="1"] .study-console > :is(.study-real-output,.study-test-list,.study-no-result) { animation:workspace-result-a 240ms var(--workspace-ease) both; }
+  .classroom-workspace[data-console-motion="2"] .study-console > :is(.study-real-output,.study-test-list,.study-no-result) { animation:workspace-result-b 240ms var(--workspace-ease) both; }
+  .app-shell .teacher-timeline > .teacher-message:last-of-type { animation:workspace-message-in 220ms var(--workspace-ease) both; }
+  .app-shell .notification-popover,.app-shell .lesson-menu,.app-shell .teacher-settings { animation:workspace-popover-in 180ms var(--workspace-ease) both; }
+  .app-shell .search-modal,.app-shell .help-modal,.app-shell .confirm-modal { animation:workspace-dialog-in 240ms var(--workspace-ease) both; }
+  .app-shell .image-question-panel { animation:workspace-message-in 220ms var(--workspace-ease) both; }
+  .app-shell .sidebar-scrim { animation:workspace-overlay-in 160ms ease both; }
+  .app-shell .study-save[data-state="saved"] > svg { animation:workspace-saved-in 180ms ease both; }
+}
+@keyframes workspace-arrival { from { opacity:0; transform:translateY(22px); } to { opacity:1; transform:none; } }
+@keyframes workspace-teacher-arrival { from { opacity:0; transform:translate(-18px,12px); } to { opacity:1; transform:none; } }
+@keyframes workspace-stage-arrival { from { opacity:0; transform:translateY(24px) scale(.992); } to { opacity:1; transform:none; } }
+@keyframes workspace-ink-a { from { opacity:.45; transform:translateY(4px); } to { opacity:1; transform:none; } }
+@keyframes workspace-ink-b { from { opacity:.45; transform:translateY(4px); } to { opacity:1; transform:none; } }
+@keyframes workspace-write-a { from { background-color:#dcecff; } }
+@keyframes workspace-write-b { from { background-color:#dcecff; } }
+.app-shell .motion-source pre > .motion-code-indicator { background:#244a70; border-left:3px solid #8bc7ff; }
+.app-shell .motion-source-line[aria-current="step"] > span { color:#b9dfff; }
+.app-shell .execution-diagram [data-value-change="true"] { border-color:#8fb8e7; }
+@keyframes workspace-page-a { from { opacity:.55; transform:translateY(8px); } to { opacity:1; transform:none; } }
+@keyframes workspace-page-b { from { opacity:.55; transform:translateY(8px); } to { opacity:1; transform:none; } }
+@keyframes workspace-pane-a { from { opacity:.55; } to { opacity:1; } }
+@keyframes workspace-pane-b { from { opacity:.55; } to { opacity:1; } }
+@keyframes workspace-result-a { from { opacity:.5; transform:translateY(4px); } to { opacity:1; transform:none; } }
+@keyframes workspace-result-b { from { opacity:.5; transform:translateY(4px); } to { opacity:1; transform:none; } }
+@keyframes workspace-message-in { from { opacity:.65; transform:translateY(5px); } to { opacity:1; transform:none; } }
+@keyframes workspace-popover-in { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:none; } }
+@keyframes workspace-saved-in { from { opacity:.3; transform:scale(.8); } to { opacity:1; transform:none; } }
+@media(prefers-reduced-motion:reduce) {
+  .app-shell .ui-marker-group > .workspace-marker[data-ready],.app-shell .sidebar,.app-shell .nav-item > svg,.app-shell .lesson-open > svg,.app-shell .course-card-bottom svg,.app-shell .course-card,.app-shell .lesson-row { transition:none; }
+}

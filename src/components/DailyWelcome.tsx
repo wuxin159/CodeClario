@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import {useEffect,useState} from "react";
+import SelectControl from "./SelectControl";
 import { ArrowRight, ChevronDown, LoaderCircle, Send } from "lucide-react";
 import type { DailyLearning } from "../hooks/useDailyPlan";
 import type { Missions } from "../hooks/useMissions";
@@ -62,7 +63,7 @@ export default function DailyWelcome({ daily: d, missions: m, name, onOpen, onFl
     <div id="daily-plan-details" hidden={!expanded} className="modern-daily-details">
       {d.plan && <>
         {active && <p className="daily-original-greeting">{outOfDate ? "以下是切换任务前保存的安排。" : "原安排说明：" + d.plan.greeting}</p>}
-        <div className="daily-time" aria-label="今天的学习时间"><span>今天学多久</span>{[10,20,35].map(n=><button key={n} disabled={pending} aria-pressed={d.plan?.budget===n} onClick={()=>void d.prepare({minutes:n})}>{n}分钟</button>)}<select aria-label="今日学习语言" value={d.plan.language} disabled={pending} onChange={e=>void d.prepare({language:e.target.value as Language})}>{languages.map(l=><option key={l.id} value={l.id}>{l.name}</option>)}</select></div>
+        <div className="daily-time" aria-label="今天的学习时间"><span>今天学多久</span>{[10,20,35].map(n=><button key={n} disabled={pending} aria-pressed={d.plan?.budget===n} onClick={()=>void d.prepare({minutes:n})}>{n}分钟</button>)}<SelectControl label="今日学习语言" compact value={d.plan.language} disabled={pending} onValueChange={value=>void d.prepare({language:value as Language})} options={languages.map(l=>({value:l.id,label:l.name}))}/></div>
         <form className="daily-reply" onSubmit={e=>{e.preventDefault();void reply();}}><input aria-label="告诉AI今天的想法" value={message} maxLength={500} onChange={e=>setMessage(e.target.value)} placeholder="今天哪里没懂，或者想调整安排…"/><button aria-label="回应今日AI老师" disabled={d.busy||!message.trim()}><Send size={17}/></button></form>
         <ol className="modern-daily-agenda">{d.plan.steps.map((step,index)=><li key={step.lessonId}>
           <span className={"modern-plan-step "+(d.progress?.[index]?.state==="verified"?"verified":"")}>{index+1}</span><div><strong>{step.title}</strong><small>{step.minutes}分钟 · {d.progress?.[index]?.text??"待开始"}</small><p>{step.reason}</p></div>

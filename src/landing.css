@@ -98,9 +98,14 @@
 .cine-journey-controls .cine-follow { color:#245dd8; }
 .cine-journey-media { min-width:0; }
 .cine-journey-image { width:100%; aspect-ratio:3164/1712; position:relative; display:block; overflow:hidden; padding:0; border:1px solid #e0e4e9; border-radius:5px; background:#f3f5f8; line-height:0; }
-.cine-journey-image>img { width:100%; height:100%; position:absolute; inset:0; object-fit:contain; opacity:0; transition:opacity .3s ease; pointer-events:none; }
-.cine-journey-image>img.is-current { opacity:1; }
-.cine-journey-image>span { display:grid; place-items:center; position:absolute; bottom:16px; right:16px; width:36px; height:36px; background:#fff; color:#384a60; border-radius:4px; }
+.cine-journey-shot { position:absolute; inset:0; opacity:0; pointer-events:none; transform:translateX(2%) scale(.988); transition:transform .54s var(--cine-ease),opacity .36s ease; }
+.cine-journey-shot.is-past { transform:translateX(-2%) scale(.988); }
+.cine-journey-shot.is-current { z-index:1; opacity:1; transform:none; }
+.cine-journey-shot img { display:block; width:100%; height:100%; object-fit:contain; }
+.cine-journey-focus { position:absolute; border:2px solid #4c8ddf; border-radius:6px; background:#75b2ff0c; opacity:0; transform:scale(1.045); }
+.cine-journey-shot.is-current .cine-journey-focus { opacity:1; transform:none; animation:cine-focus-in .58s var(--cine-ease) both; }
+.cine-journey-expand { display:grid; place-items:center; position:absolute; z-index:2; bottom:16px; right:16px; width:36px; height:36px; background:#fff; color:#384a60; border-radius:4px; transition:transform .2s var(--cine-ease); }
+.cine-journey-image:hover .cine-journey-expand { transform:translate(-2px,-2px); }
 .cine-journey-caption { display:flex; justify-content:space-between; align-items:center; gap:18px; color:#75808c; font-size:11px; padding-top:10px; }
 .cine-journey-caption>span { font-variant-numeric:tabular-nums; }
 .cine-thumbnails { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:22px; margin-top:24px; width:70%; margin-left:auto; }
@@ -150,7 +155,9 @@
 .cine-close { background:#245dd8; color:#f5f7fb; padding-block:96px; }
 .cine-close>.cine-wide:first-child { display:flex; align-items:flex-end; justify-content:space-between; gap:50px; }
 .cine-close .cine-eyebrow { color:#98afc6; margin-bottom:23px; }
-.cine-close h2 { color:#fff; font-size:clamp(34px,4.25vw,62px); line-height:1.3; letter-spacing:-.045em; font-weight:500; }
+.cine-close h2 { color:#fff; font-family:"Microsoft YaHei UI","PingFang SC","Microsoft YaHei",sans-serif; font-size:clamp(28px,3vw,42px); line-height:1.5; letter-spacing:.045em; font-weight:400; }
+.cine-close-line { display:block; }
+.cine-close-line + .cine-close-line { margin-top:.18em; }
 .cine-close .cine-button { margin-bottom:6px; min-width:190px; }
 .cine-footer { display:flex; align-items:center; justify-content:space-between; gap:28px; padding-top:34px; padding-bottom:34px; font-size:12px; color:#697b91; }
 .cine-footer .cine-brand { width:175px; }
@@ -171,7 +178,7 @@
 @media(prefers-reduced-motion:no-preference) {
   .cinematic-landing:not(.motion-off) .cine-hero-enter { animation:cine-enter .85s var(--cine-ease) both; }
   .cinematic-landing:not(.motion-off) .cine-hero-enter:nth-child(2) { animation-delay:.06s; }
-  .cinematic-landing:not(.motion-off) .cine-journey-description { animation:cine-caption .36s var(--cine-ease); }
+  .cinematic-landing:not(.motion-off) .cine-journey-description.is-current { animation:cine-caption .36s var(--cine-ease); }
   .cinematic-landing:not(.motion-off) .cine-faq-answer>p { animation:cine-caption .2s ease; }
   .cinematic-landing.motion-ready:not(.motion-off) [data-reveal] { transition:transform .75s var(--cine-ease),opacity .6s ease; }
   .cinematic-landing.motion-ready:not(.motion-off) [data-reveal]:not(.is-visible) { transform:translateY(22px); opacity:.35; }
@@ -322,7 +329,7 @@
   .cine-journey-controls { margin-top:12px; }
   .cine-journey-controls button { min-height:44px; }
   .cine-journey-image { border-radius:3px; }
-  .cine-journey-image>span { width:30px; height:30px; bottom:9px; right:9px; }
+.cine-journey-expand { width:30px; height:30px; bottom:9px; right:9px; }
   .cine-journey-caption { font-size:10px; }
   .cine-thumbnails { gap:10px; }
   .cine-thumbnails button>span { font-size:10px; }
@@ -357,7 +364,7 @@
   .cine-close { padding-block:62px; }
   .cine-close>.cine-wide:first-child { display:block; }
   .cine-close .cine-eyebrow { margin-bottom:18px; }
-  .cine-close h2 { font-size:34px; line-height:1.35; }
+  .cine-close h2 { font-size:26px; line-height:1.55; letter-spacing:.03em; }
   .cine-close .cine-button { margin-top:29px; min-width:180px; }
   .cine-footer { padding-top:28px; padding-bottom:28px; display:flex; flex-wrap:wrap; gap:12px 20px; font-size:11px; }
   .cine-footer .cine-brand { width:100%; }
@@ -388,4 +395,44 @@
   .cinematic-landing [data-reveal],.cinematic-landing .cine-unfold-image { opacity:1!important; transform:none!important; }
   .cine-journey { height:auto; min-height:0; padding-block:70px; }
   .cine-journey-stage { position:relative; min-height:0; height:auto; max-height:none; padding-block:0; }
+}
+
+/* 动效跟随现有蓝白界面：正文不隐藏，截图在同一个框里交接。 */
+.cine-title-line { display:block; overflow:hidden; padding-bottom:.06em; margin-bottom:-.06em; }
+.cine-title-line > span { display:block; }
+.cine-journey { overflow-anchor:none; }
+/* 各章文案共用一格并预留最长内容的高度，切章不挪动标签和截图。 */
+.cine-journey-text-stack { display:grid; grid-column:1/-1; grid-row:2; align-items:start; }
+.cine-journey-text-stack > .cine-journey-description { grid-area:1/1; visibility:hidden; }
+.cine-journey-text-stack > .cine-journey-description.is-current { visibility:visible; }
+.cine-journey-tabs { position:relative; }
+.cine-journey-tabs button small { color:#7186a1; font-size:10px; font-variant-numeric:tabular-nums; }
+.cine-journey-tabs button:hover { color:#245dd8; }
+.cine-journey-tabs button[aria-selected="true"] { border-bottom-color:transparent; }
+.cine-journey-tabs button[aria-selected="true"] small { color:#245dd8; }
+.cine-journey-indicator { position:absolute; top:0; left:0; width:1px; height:2px; border-radius:1px; background:#245dd8; pointer-events:none; transform-origin:left center; transform:translate(var(--story-tab-x,0px),var(--story-tab-y,0px)) scaleX(var(--story-tab-length,0)); transition:transform .38s var(--cine-ease); }
+.cine-journey-progress { height:2px; margin-top:9px; background:#dce5f1; overflow:hidden; }
+.cine-journey-progress span { display:block; width:100%; height:100%; transform-origin:left center; transform:scaleX(var(--story-step,.25)); background:#4d83dc; transition:transform .46s var(--cine-ease); }
+.cine-journey-caption>span:last-child { flex:none; }
+@keyframes cine-focus-in { from { opacity:0; transform:scale(1.045); } to { opacity:1; transform:none; } }
+@media(prefers-reduced-motion:no-preference) {
+  .cinematic-landing:not(.motion-off) .cine-title-line > span { animation:cine-title-rise .78s var(--cine-ease) both; }
+  .cinematic-landing:not(.motion-off) .cine-title-line:nth-child(2) > span { animation-delay:.085s; }
+  .cinematic-landing:not(.motion-off) .cine-hero-stage { animation:cine-stage-enter .74s var(--cine-ease) both; }
+}
+@keyframes cine-title-rise { from { transform:translateY(80%); opacity:.4; } to { transform:none; opacity:1; } }
+@keyframes cine-stage-enter { from { transform:translateY(14px) scale(.99); opacity:.7; } to { transform:none; opacity:1; } }
+@media(min-width:901px) { .cine-journey-tabs { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px 14px; } }
+@media(max-width:900px), (max-height:699px) {
+  .cine-journey { height:auto; min-height:0; padding-block:64px; }
+  .cine-journey-stage { position:relative; top:auto; min-height:0; height:auto; max-height:none; padding-block:0; }
+  .cine-journey-controls .cine-follow { display:none; }
+}
+.cinematic-landing.motion-off .cine-journey-controls .cine-follow { display:none; }
+
+/* 保留原版文字、图标和纵向信息层级，仅轻微收紧PC上下留白。 */
+@media(min-width:761px) {
+  .cine-courses { padding-top:96px; padding-bottom:88px; }
+  .cine-courses .cine-language-list { margin-top:40px; }
+  .cine-courses .cine-language-list > button { padding-top:26px; padding-bottom:26px; }
 }

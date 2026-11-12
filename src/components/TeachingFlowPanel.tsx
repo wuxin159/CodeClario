@@ -1,3 +1,4 @@
+import SelectControl from "./SelectControl";
 import { useEffect, useState } from "react";
 import {
   ArrowRight,
@@ -198,15 +199,7 @@ export default function TeachingFlowPanel({
             );
           }}
         >
-          <select
-            aria-label="预测内容"
-            value={kind}
-            onChange={(e) => setKind(e.target.value as typeof kind)}
-          >
-            <option value="output">最终标准输出</option>
-            <option value="variable">变量最终值（Python）</option>
-            <option value="line">某行执行次数（Python）</option>
-          </select>
+          <SelectControl label="预测内容" value={kind} full onValueChange={value=>setKind(value as typeof kind)} options={[{value:'output',label:'最终标准输出'},{value:'variable',label:'变量最终值（Python）'},{value:'line',label:'某行执行次数（Python）'}]}/>
           {kind !== "output" && (
             <input
               aria-label={kind === "line" ? "预测行号" : "预测变量名"}

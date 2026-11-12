@@ -21,3 +21,30 @@
 @media(max-width:760px){.bubble-transport button{min-width:44px}.bubble-source pre{font-size:12px}.bubble-showcase-options{gap:4px}.bubble-showcase-options select{max-width:82px}.bubble-languages button{padding-inline:7px}}
 /* 手机观察页先展示本课状态图，避免让一整块源码把核心动画推到屏幕之外。 */
 @media(max-width:760px){.lesson-visualization[data-visual-kind="bubble"] .motion-stage{display:flex;flex-direction:column}.lesson-visualization[data-visual-kind="bubble"] .bubble-lesson-canvas{order:-1}.bubble-lesson-canvas .bubble-diagram{padding:12px}}
+
+/* 首页用单个高亮层追踪源码行；颜色和位置保持与已提交的步骤一致。 */
+.bubble-showcase .bubble-source pre > span[data-line] { position:relative; z-index:1; transition:color .16s ease; }
+.bubble-showcase .bubble-source pre > span[data-line].is-current { background:transparent; border-left-color:transparent; }
+.bubble-showcase .bubble-source pre > .bubble-code-cursor { display:block; position:absolute; inset:0 0 auto; height:1px; padding:0; border:0; background:linear-gradient(90deg,#80b7fc 0 3px,#214a72 3px); transform-origin:top left; transform:translateY(var(--bubble-cursor-y,0px)) scaleY(var(--bubble-cursor-size,0)); transition:transform .32s var(--cine-ease,ease); pointer-events:none; }
+.bubble-showcase .bubble-compare-cue { animation:bubble-compare-in .2s ease-out both; }
+.bubble-showcase .bubble-compare-cue path { fill:none; stroke:#4b83da; stroke-width:2; stroke-linecap:round; }
+.bubble-showcase .bubble-compare-cue text { fill:#2859a3; font-size:20px; font-weight:650; font-variant-numeric:tabular-nums; }
+.bubble-showcase .bubble-bar rect { transition:fill .2s ease; }
+.bubble-showcase .bubble-explanation { grid-template-columns:128px minmax(0,1fr); align-items:center; }
+.bubble-phase { display:grid; gap:5px; align-content:start; }
+.bubble-flow { display:flex; align-items:center; gap:7px; color:#6c819c; font-size:10px; white-space:nowrap; }
+.bubble-flow span { transition:color .2s ease; }
+.bubble-flow span:not(:last-child)::after { content:"›"; margin-left:7px; color:#a3b3c6; }
+.bubble-flow .is-active { color:#245dd8; font-weight:650; }
+.bubble-showcase .bubble-explanation p { animation:bubble-note-in .24s var(--cine-ease,ease) both; }
+.bubble-showcase .bubble-transport button,.bubble-showcase .bubble-languages button { transition:background-color .18s ease,color .18s ease,transform .18s var(--cine-ease,ease); }
+.bubble-showcase .bubble-transport button:active:not(:disabled),.bubble-showcase .bubble-languages button:active { transform:scale(.96); }
+@keyframes bubble-compare-in { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
+@keyframes bubble-note-in { from { opacity:.6; transform:translateY(4px); } to { opacity:1; transform:none; } }
+@media(max-width:760px){
+  .bubble-phase{display:flex;flex-wrap:wrap;align-items:baseline;gap:5px 12px}
+  .bubble-showcase-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 8px}
+  .bubble-showcase-options .bubble-languages{grid-column:1/-1;margin-right:0}
+  .bubble-showcase-options .bubble-languages button{min-width:44px}
+  .bubble-showcase-options select{width:100%;max-width:none}
+}

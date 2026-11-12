@@ -1,4 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import SelectControl from "./SelectControl";
+import LanguageMark from "./LanguageMark";
+import SelectionMarker from "./SelectionMarker";
+import {useBriefMotion} from "../hooks/useBriefMotion";
 import {
   ArrowLeft,
   ArrowRight,
@@ -532,8 +536,10 @@ export default function LearningWorkspace(p: Props) {
         setThinking(false);
     }
   }
+  const panelMotion=useBriefMotion(`${mode}:${mobilePane}`,220);
+  const consoleMotion=useBriefMotion(`${result?.id??''}:${consoleTab}`,240);
   return (
-    <main className="learning-workspace modern-workspace classroom-workspace" data-mode={mode} data-mobile-pane={mobilePane} onKeyDownCapture={(event) => {
+    <main className="learning-workspace modern-workspace classroom-workspace" data-mode={mode} data-mobile-pane={mobilePane} data-panel-motion={panelMotion} data-console-motion={consoleMotion} data-running={running} onKeyDownCapture={(event) => {
       // 在编辑器默认键位之前消费快捷键，并按当前模式分派，防止插空行或运行错代码。
       if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
         // 对话表单和概念探究弹窗有自己的提交语义，不能触发隐藏的主程序运行。
@@ -604,27 +610,23 @@ export default function LearningWorkspace(p: Props) {
               {p.saveStatus === "error" ? "保存失败 · 重试" : "登录后保存"}
             </button>
           ) : (
-            <span className="study-save" role="status">
-              {mode === "experiment" ? "主代码" : ""}{p.saveStatus === "saved" ? "已保存" : "保存中…"}
+            <span className="study-save" data-state={p.saveStatus} role="status">
+              {p.saveStatus==='saved'?<Check size={14} aria-hidden="true"/>:<LoaderCircle size={14} className="spin" aria-hidden="true"/>}
+              <span>{mode === "experiment" ? "主代码" : ""}{p.saveStatus === "saved" ? "已保存" : "保存中…"}</span>
             </span>
           )}
-          <select
-            aria-label="切换编程语言"
+          <SelectControl
+            label="切换编程语言" compact
             value={lesson.language}
-            onChange={(e) => {
-              const language = e.target.value as Language;
+            onValueChange={(value) => {
+              const language = value as Language;
               const equivalent = equivalentLesson(lesson, language);
               if (!equivalent)
                 notify("目标语言暂无对应知识点，已打开该语言的第一课。");
               p.onOpen(equivalent?.id ?? `${language}-1`);
             }}
-          >
-            {languages.map((l) => (
-              <option value={l.id} key={l.id}>
-                {l.name}
-              </option>
-            ))}
-          </select>
+            options={languages.map(l=>({value:l.id,label:l.name,icon:<LanguageMark language={l.id} small/>}))}
+          />
         </div>
       </div>
       <header className="mission-workspace-header">
@@ -652,7 +654,8 @@ export default function LearningWorkspace(p: Props) {
         </div>
       </header>
       {adoptError && <p role="alert" className="task-warning">{adoptError}</p>}
-      <nav className="task-mobile-navigation" aria-label="任务工作区域">
+      <nav className="task-mobile-navigation ui-marker-group" aria-label="任务工作区域">
+        <SelectionMarker selection={mobilePane} selector={'button[aria-pressed="true"]'}/>
         <button
           aria-pressed={mobilePane === "teach"}
           onClick={() => setMobilePane("teach")}
@@ -830,9 +833,11 @@ export default function LearningWorkspace(p: Props) {
           id="task-workbench"
           className={`study-center ${pane === "visual" || pane === "code" ? "mobile-active" : ""}`}
         >
-          <div className="study-mode-tabs">
+          <div className="study-mode-tabs ui-marker-group ui-marker-line">
+            <SelectionMarker selection={mode} selector="button.selected" variant="line"/>
             <button
               className={"mode-visual " + (mode === "visual" ? "selected" : "")}
+              aria-pressed={mode==='visual'}
               onClick={() => {
                 setMode("visual");
                 setPane("visual");
@@ -843,6 +848,7 @@ export default function LearningWorkspace(p: Props) {
             </button>
             <button
               className={"mode-code " + (mode === "code" ? "selected" : "")}
+              aria-pressed={mode==='code'}
               onClick={() => {
                 openPractice();
               }}
@@ -852,6 +858,7 @@ export default function LearningWorkspace(p: Props) {
             </button>
             <button
               className={"mode-replay " + (mode === "replay" ? "selected" : "")}
+              aria-pressed={mode==='replay'}
               onClick={() => {
                 setMode("replay");
                 setPane("visual");
@@ -861,6 +868,7 @@ export default function LearningWorkspace(p: Props) {
             </button>
             <button
               className={"mode-experiment " + (mode === "experiment" ? "selected" : "")}
+              aria-pressed={mode==='experiment'}
               onClick={() => {
                 setMode("experiment");
                 setPane("visual");
@@ -1061,7 +1069,8 @@ export default function LearningWorkspace(p: Props) {
             )}
             <ConsoleResizeHandle target={consoleRef} height={consoleHeight} onHeight={setConsoleHeight}/>
             <div className="study-console" ref={consoleRef}>
-              <div className="study-console-tabs">
+              <div className="study-console-tabs ui-marker-group ui-marker-line">
+                <SelectionMarker selection={consoleTab} selector="button.selected" variant="line"/>
                 {(
                   [
                     { id: "output", title: "运行结果" },
@@ -1178,15 +1187,7 @@ export default function LearningWorkspace(p: Props) {
             <p>解释课程示例，或结合运行结果分析。</p>
             <label>
               提示深度
-              <select
-                aria-label="提示深度"
-                value={level}
-                onChange={(e) => setLevel(Number(e.target.value))}
-              >
-                <option value={1}>方向提示</option>
-                <option value={2}>关键位置</option>
-                <option value={3}>局部表达式</option>
-              </select>
+              <SelectControl label="提示深度" value={String(level)} full onValueChange={value=>setLevel(Number(value))} options={[{value:'1',label:'方向提示'},{value:'2',label:'关键位置'},{value:'3',label:'局部表达式'}]}/>
             </label>
           </div>
           <div className="study-messages" hidden={coachTab !== "chat"}>

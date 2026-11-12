@@ -14,6 +14,9 @@ import type { Scene, SceneOptions } from "../../shared/scenes";
 import { sceneFrame } from "../../shared/sceneMotion";
 import { visualLesson } from "../../shared/visualLessons";
 import { useScenePlayback } from "../hooks/useScenePlayback";
+import {useReducedMotion} from "../hooks/useReducedMotion";
+import {useBriefMotion} from "../hooks/useBriefMotion";
+import SelectControl from "./SelectControl";
 import TeachingCanvas from "./TeachingCanvas";
 import MotionSource from "./MotionSource";
 import ConceptStage, { hasConceptStage } from "./ConceptStage";
@@ -43,9 +46,7 @@ export default function LessonVisualization({
   onAsk?: (question: string, stepIndex: number) => void;
   children?: ReactNode;
 }) {
-  const [reduced, setReduced] = useState(
-    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-  );
+  const reduced = useReducedMotion();
   const playback = useScenePlayback({
     sceneId: scene.id,
     count: scene.steps.length,
@@ -69,6 +70,9 @@ export default function LessonVisualization({
     return () => { live = false; observer.disconnect(); };
   }, [scene.id]);
   const frame = sceneFrame(scene, playback.time);
+  // 只在完整教学步骤改变时强调，不随连续时间轴的每一帧重复触发。
+  const stepMotion=useBriefMotion(`${scene.id}:${frame.index}`,540);
+  const outputMotion=useBriefMotion(`${scene.id}:${frame.from.output}`,540);
   const visual = visualLesson(lesson);
   const [sourceShare, setSourceShare] = useState(scene.code.split("\n").length <= 6 ? 33 : 42);
   const [showSource, setShowSource] = useState(true);
@@ -105,6 +109,8 @@ export default function LessonVisualization({
     <section
       className={`lesson-visualization motion-visualization ${reduced ? "reduced" : ""}`}
       data-visual-kind={visual.kind}
+      data-step-motion={stepMotion}
+      data-output-motion={outputMotion}
       aria-label="本课可视化"
       tabIndex={0}
       onKeyDown={(e) => {
@@ -200,6 +206,7 @@ export default function LessonVisualization({
         <MotionSource
           code={scene.code}
           fromLine={frame.from.line}
+          stepKey={frame.index}
           toLine={frame.to.line}
           progress={reduced ? 0 : frame.progress}
           reduced={reduced}
@@ -242,14 +249,6 @@ export default function LessonVisualization({
       </details>
       <div className="visual-footer">
         <span>可随时暂停、拖动时间轴，或用左右键逐步查看</span>
-        <label>
-          <input
-            type="checkbox"
-            checked={reduced}
-            onChange={(e) => setReduced(e.target.checked)}
-          />
-          减少动效
-        </label>
       </div>
       {exploration&&<ConceptExploreDialog lessonId={lesson.id} mode={exploration} onClose={()=>setExploration(undefined)}/>}
       {children}
@@ -285,16 +284,7 @@ export default function LessonVisualization({
           </button>
           <label className="scene-speed">
             <span className="sr-only">播放速度</span>
-            <select
-              aria-label="播放速度"
-              value={playback.speed}
-              disabled={reduced}
-              onChange={(e) => playback.setSpeed(Number(e.target.value))}
-            >
-              <option value={0.5}>0.5×</option>
-              <option value={1}>1×</option>
-              <option value={2}>2×</option>
-            </select>
+            <SelectControl label="播放速度" compact value={String(playback.speed)} disabled={reduced} onValueChange={value=>playback.setSpeed(Number(value))} options={[0.5,1,2].map(v=>({value:String(v),label:`${v}×`}))}/>
           </label>
         </div>
         <div className="motion-timeline-wrap">
