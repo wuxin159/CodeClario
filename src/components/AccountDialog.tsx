@@ -339,10 +339,10 @@ export default function AccountDialog({
               {error}
             </div>
           )}
-          <button className="button primary account-submit" disabled={busy}>
+          <button className="button primary account-submit" disabled={busy} aria-busy={busy}>
             {busy ? <LoaderCircle size={16} className="spin" /> : null}
             {busy
-              ? "正在处理…"
+              ? mode === "login" ? "正在登录..." : "正在处理…"
               : user
                 ? changePassword
                   ? "更新密码"

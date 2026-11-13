@@ -1881,6 +1881,18 @@ input::placeholder,textarea::placeholder {
   min-height: 42px;
 }
 
+/* 登录、注册共用白色按钮文字，常态和悬停也不受旧主题文字颜色影响。 */
+.account-dialog .button.account-submit,
+.account-dialog .button.account-submit:hover {
+  color: #fff!important;
+}
+/* 提交中的主按钮保留蓝底白字，避免通用禁用样式把等待提示改成灰字。 */
+.account-dialog .account-submit[aria-busy="true"] {
+  background: #245dd8!important;
+  color: #fff!important;
+  opacity: 1!important;
+}
+
 .account-dialog input {
   min-height: 42px;
   background: #fff;
