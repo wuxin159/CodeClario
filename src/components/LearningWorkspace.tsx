@@ -5,6 +5,8 @@ import SelectionMarker from "./SelectionMarker";
 import {useBriefMotion} from "../hooks/useBriefMotion";
 import {useEvidenceCue} from "../hooks/useEvidenceCue";
 import RunReceipt from "./RunReceipt";
+import {RemediationSuggestion,RemediationBanner} from './RemediationNotice';
+import type {Remediation} from '../hooks/useRemediation';
 import {
   ArrowLeft,
   ArrowRight,
@@ -98,6 +100,10 @@ type Props = {
   onBack: () => void;
   onRun: (r: RunResult) => void;
   onArchive: (result:RunResult,source:HTMLElement) => void;
+  remediation:Remediation;
+  onRemediate:()=>void;
+  onReviewResume:()=>void;
+  onReviewReturn:(complete:boolean)=>void;
   completed: string[];
   status: { runner: boolean; ai: boolean; checked: boolean };
   notify: (v: string) => void;
@@ -183,6 +189,7 @@ export default function LearningWorkspace(p: Props) {
     p.missions.active?.lessonId === lesson.id ? p.missions.active : null;
   useEffect(() => {
     void p.missions.refresh();
+    void p.remediation.refresh();
   }, [flow.task?.updatedAt]);
   const initialAnalysis = useRef(false);
   useEffect(() => {
@@ -438,6 +445,7 @@ export default function LearningWorkspace(p: Props) {
     setStudy(data.study);
     void p.missions.refresh();
     p.onStudyChange();
+    void p.remediation.refresh();
     void flow.onStudy();
   }
   async function run(showAnimation = false) {
@@ -652,7 +660,7 @@ export default function LearningWorkspace(p: Props) {
           {lesson.practiceLevel&&<p className="practice-level-note">{lesson.practiceLevel==="independent"?"独立实践：自己组织完整程序，再用多组输入验证。":lesson.practiceLevel==="partial"?"补全练习：自己补出关键步骤，逐步减少对模板的依赖。":"引导练习：先读懂示例，再完成一次有依据的修改。"}</p>}
         </div>
         <div className="workspace-purpose-actions">
-          {!activeMission && <button className="button primary" disabled={adopting || p.missions.busy} onClick={async()=>{
+          {!activeMission&&!p.remediation.session && <button className="button primary" disabled={adopting || p.missions.busy} onClick={async()=>{
             setAdopting(true); setAdoptError("");
             try { await p.onFlush(); if(await p.missions.adopt(lesson.id)) await flow.enter(); }
             catch(e) { setAdoptError((e as Error).message); }
@@ -660,6 +668,7 @@ export default function LearningWorkspace(p: Props) {
           }}>{adopting ? "正在准备…" : "学习这节课"}<ArrowRight size={15}/></button>}
         </div>
       </header>
+      <RemediationBanner review={p.remediation} currentLessonId={lesson.id} onResume={p.onReviewResume} onReturn={p.onReviewReturn} onCheck={()=>{setMode('visual');setPane('visual');setMobilePane('observe');setReviewRequest(v=>v+1);}}/>
       {adoptError && <p role="alert" className="task-warning">{adoptError}</p>}
       <nav className="task-mobile-navigation ui-marker-group" aria-label="任务工作区域">
         <SelectionMarker selection={mobilePane} selector={'button[aria-pressed="true"]'}/>
@@ -704,6 +713,8 @@ export default function LearningWorkspace(p: Props) {
                   : undefined
           }
           flow={flow}
+          remediationKey={p.remediation.suggestion?`${p.remediation.suggestion.id}:${p.remediation.suggestion.count}`:undefined}
+          remediation={<RemediationSuggestion review={p.remediation} disabled={flow.busy||running} onStart={p.onRemediate} onDismiss={()=>{const id=p.missions.active?.id,concept=p.remediation.suggestion?.id;if(id&&concept)void p.remediation.dismiss(id,concept);}}/>}
           missions={p.missions}
           userId={userId}
           onRun={() => void run()}
@@ -894,7 +905,7 @@ export default function LearningWorkspace(p: Props) {
             </span>
           </div>
           <LessonGuide lesson={lesson} mode={mode} hasReplay={result?.trace?.status==="available"&&result.trace.steps.length>0} replayNote={replayNote} onPractice={openPractice} onObserve={()=>{setMode("visual");setPane("visual");setMobilePane("observe");}}/>
-          {result?.passed&&!stale&&(mode==='code'||mode==='replay')&&<RunReceipt lesson={lesson} result={result} onOpen={source=>p.onArchive(result,source)}/>}
+          {result?.passed&&!stale&&p.remediation.session?.targetLessonId!==lesson.id&&(mode==='code'||mode==='replay')&&<RunReceipt lesson={lesson} result={result} onOpen={source=>p.onArchive(result,source)}/>}
           <div className="study-center-body" hidden={mode !== "visual"}>
             <LessonVisualization
               lesson={lesson}
@@ -915,7 +926,7 @@ export default function LearningWorkspace(p: Props) {
               open={extraPracticeOpen}
               onToggle={(e) => setExtraPracticeOpen(e.currentTarget.open)}
             >
-              <summary>课程自测（可选）</summary>
+              <summary>{p.remediation.session?.targetLessonId===lesson.id?'补学理解检查':'课程自测（可选）'}</summary>
               <div ref={reviewTarget} className="study-understanding">
                 <UnderstandingQuestion
                   question={plan.questions[1]}

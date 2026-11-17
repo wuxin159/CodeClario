@@ -17,6 +17,7 @@ import { runSandbox, runnerImage } from "./runner.ts";
 import { experimentRoutes } from "./experiments.ts";
 import { discoveryRoutes } from "./discovery.ts";
 import { visionRoutes } from "./vision.ts";
+import {remediationRoutes} from './remediation.ts';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const store = new LearningDatabase(
@@ -56,6 +57,7 @@ app.use(
 );
 app.use("/api", aiSettingsRoutes());
 app.use("/api", visionRoutes(store));
+app.use("/api", remediationRoutes(store));
 app.use("/api", flowRoutes(store));
 app.use("/api", missionRoutes(store));
 app.use("/api", dailyRoutes(store));

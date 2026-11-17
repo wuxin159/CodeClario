@@ -53,6 +53,8 @@ import SelectionMarker from "./components/SelectionMarker";
 import {useArrivalMotion} from "./hooks/useArrivalMotion";
 import {useSharedNavigation} from "./hooks/useSharedNavigation";
 import RunReceipt from "./components/RunReceipt";
+import {useRemediation} from './hooks/useRemediation';
+import {RemediationBanner} from './components/RemediationNotice';
 
 type Page = "home" | "dashboard" | "courses" | "lab" | "progress";
 const dateKey = (date = new Date()) =>
@@ -104,6 +106,8 @@ export default function App() {
     return findLesson(path)?.id || "c-1";
   });
   const pageMotion=useBriefMotion(page==='lab'?`lab:${lessonId}`:page,280,page!=='home'&&workspaceEntry.phase==='idle');
+  const remediation=useRemediation(user?.id,lessonId);
+  useEffect(()=>{void remediation.refresh();},[page,missions.active?.id,state.totals.runs]);
   const arrivalRoot=useArrivalMotion(`${page}:${page==='lab'?lessonId:''}:${user?.id??'guest'}`,
     '.courses-page > h1,.courses-page > .page-description,.course-grid > .course-card,.lesson-list > .lesson-row,.mission-workspace-header,.learning-grid > .teaching-conversation,.learning-grid > .study-center,.task-home-heading,.daily-welcome,.task-home-columns > section,.task-home-aside');
   const [status, setStatus] = useState({
@@ -292,6 +296,19 @@ export default function App() {
       void account
         .refreshLearning(user.id)
         .catch((error) => setToast(error.message));
+  }
+  async function beginRemediation(){
+    const suggestion=remediation.suggestion,active=missions.active;
+    if(!suggestion||!active||active.lessonId!==lessonId)return;
+    try{await account.flush();const data=await remediation.start(active.id,suggestion.id);if(data?.session)openLesson(data.session.targetLessonId);}catch(e){setToast((e as Error).message);}
+  }
+  async function returnFromRemediation(complete:boolean){
+    const session=remediation.session;if(!session)return;
+    try{await account.flush();const data=await remediation.finish(session.id,complete);if(data?.returnLessonId)openLesson(data.returnLessonId);}catch(e){setToast((e as Error).message);}
+  }
+  async function resumeRemediation(){
+    const session=remediation.session;if(!session)return;
+    try{await account.flush();if(currentAccountId.current===user?.id)openLesson(session.targetLessonId);}catch(e){setToast((e as Error).message);}
   }
   async function startLesson(id: string,source?:HTMLElement) {
     if (!user || startingLesson) return;
@@ -623,6 +640,7 @@ export default function App() {
             </button>
           </div>
         )}
+        {page!=='lab'&&<RemediationBanner review={remediation} onResume={()=>void resumeRemediation()} onReturn={complete=>void returnFromRemediation(complete)}/>}
         {page === "dashboard" && (
           <TaskHome
             key={user?.id ?? "guest"}
@@ -799,6 +817,10 @@ export default function App() {
             key={`${user?.id || "guest"}:${currentLesson.id}`}
             lesson={currentLesson}
             missions={missions}
+            remediation={remediation}
+            onRemediate={()=>void beginRemediation()}
+            onReviewResume={()=>void resumeRemediation()}
+            onReviewReturn={complete=>void returnFromRemediation(complete)}
             onHome={() => navigate("dashboard")}
             onFlush={account.flush}
             draft={state.drafts[currentLesson.id] ?? currentLesson.starter}

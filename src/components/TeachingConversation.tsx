@@ -54,6 +54,8 @@ export default function TeachingConversation({
   onCompose,
   compact = false,
   questionRequest,
+  remediation,
+  remediationKey,
 }: {
   lesson: Lesson;
   flow: TeachingFlow;
@@ -70,6 +72,8 @@ export default function TeachingConversation({
   onCompose?: () => void;
   compact?: boolean;
   questionRequest?: TeachingQuestionRequest;
+  remediation?:ReactNode;
+  remediationKey?:string;
 }) {
   const history = useTeachingConversation(userId, lesson.id, f.task?.updatedAt),
     [text, setText] = useState(""),
@@ -170,7 +174,7 @@ export default function TeachingConversation({
     const timeline = scroll.current;
     if (!timeline || !nearBottom.current) return;
     const replies = timeline.querySelectorAll<HTMLElement>(
-      ":scope > .teacher-message",
+      ":scope > .teacher-message, :scope > .remediation-suggestion",
     );
     const latest = replies[replies.length - 1];
     // New teaching starts at its first sentence; the outer editor never jumps.
@@ -183,7 +187,7 @@ export default function TeachingConversation({
         : timeline.scrollHeight;
     manualScroll.current = false;
     timeline.scrollTo({ top: Math.max(0, top), behavior: "auto" });
-  }, [history.events.length, f.busy, task?.updatedAt]);
+  }, [history.events.length, f.busy, task?.updatedAt,remediationKey]);
   useEffect(() => {
     if (
       pendingReply &&
@@ -660,6 +664,7 @@ export default function TeachingConversation({
             </button>
           </div>
         )}
+        {remediation}
         <div ref={bottom} />
       </div>
       <div className="teacher-composer">

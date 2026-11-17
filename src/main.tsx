@@ -24,6 +24,7 @@ import "./workspace-entry.css";
 import "./select-controls.css";
 import "./workspace-motion.css";
 import "./continuity-motion.css";
+import "./remediation.css";
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

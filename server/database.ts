@@ -93,7 +93,7 @@ export class LearningDatabase {
     const version = (this.db.prepare("PRAGMA user_version").get() as any)
       .user_version;
     // 迁移采用增量建表；拒绝用旧程序打开更高版本的库，避免误写已有学习数据。
-    if (version > 7)
+    if (version > 8)
       throw new Error("数据库版本高于当前程序版本，停止启动以保护数据。");
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS users (
@@ -184,7 +184,23 @@ export class LearningDatabase {
       );
       CREATE INDEX IF NOT EXISTS discovery_user_time ON discovery_sessions(user_id,updated_at DESC);
       CREATE INDEX IF NOT EXISTS discovery_guest_time ON discovery_sessions(guest_hash,updated_at DESC);
-      PRAGMA user_version=7;
+      CREATE TABLE IF NOT EXISTS adaptive_evidence (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        mission_id TEXT NOT NULL REFERENCES learning_missions(id),
+        lesson_id TEXT NOT NULL, concept_id TEXT NOT NULL, evidence_key TEXT NOT NULL,
+        kind TEXT NOT NULL, reason TEXT NOT NULL, created_at INTEGER NOT NULL,
+        UNIQUE(user_id,mission_id,concept_id,evidence_key)
+      );
+      CREATE TABLE IF NOT EXISTS adaptive_reviews (
+        id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        source_mission_id TEXT NOT NULL REFERENCES learning_missions(id),
+        source_lesson_id TEXT NOT NULL,target_lesson_id TEXT NOT NULL,
+        concept_id TEXT NOT NULL,concept_label TEXT NOT NULL,status TEXT NOT NULL,
+        created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS adaptive_active_user ON adaptive_reviews(user_id) WHERE status='active';
+      PRAGMA user_version=8;
     `);
   }
   async register(

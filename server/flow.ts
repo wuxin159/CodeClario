@@ -34,6 +34,7 @@ import {runDiagnosticCase} from "./diagnostics.ts";
 import {diagnosticCases,type DiagnosticObservation} from "../shared/diagnostics.ts";
 import { publicRetest, retestsFor } from "./retests.ts";
 import { courseReviewEvidence } from "./missionEvidence.ts";
+import {learningReviewContext,recordLearningIssue} from './remediation.ts';
 
 // 代码相同但输入不同也属于不同证据版本，用分隔符避免直接拼接造成歧义。
 const revisionFor = (code: string, stdin: string) =>
@@ -992,7 +993,10 @@ async function decide(
   const courseReviewQuestion = teachingPlan(lesson).questions.find(
     (question) => question.id === "review",
   );
+  const learningReview=learningReviewContext(store,userId,lesson,task,result);
+  if(learningReview.session||learningReview.recentReview)extraEvidence.push('history');
   const observations = {
+    learningReview,
     diagnosticCases:diagnosticOptions.map(({id,title,input})=>({caseId:id,title,input})),
     learningMission: learningMission
       ? {
@@ -1347,6 +1351,13 @@ async function decide(
         extraEvidence,
         candidates.map((test) => test.id),
       );
+      // 模型只能标注当前给定证据及本语言前置知识点；计数和课程目标由服务端维护。
+      if(parsed.learningIssue!==undefined){
+        const issue=parsed.learningIssue,review=observations.learningReview;
+        if(!review.evidence||!issue||issue.evidenceKey!==review.evidence.key||!review.candidates.some(c=>c.id===issue.conceptId)||typeof issue.reason!=='string'||!issue.reason.trim()||issue.reason.length>160)
+          throw new Error('learningIssue只能引用learningReview中提供的当前证据和conceptId，reason用160字内说明具体表现；无法确认时省略。');
+        validated.learningIssue={conceptId:issue.conceptId,evidenceKey:issue.evidenceKey,reason:issue.reason.trim()};
+      }
       return {...validated,policyVersion,toolTrace,diagnostics};
     } catch (e) {
       store.db
@@ -1967,6 +1978,8 @@ export function flowRoutes(store: LearningDatabase) {
           (test) => test.id,
         ),
         revision: task.revision,
+        // 开始/结束补学会改变老师的上下文，即使原代码未变也不能沿用此前的推荐缓存。
+        remediation:store.db.prepare('SELECT MAX(updated_at) AS at FROM adaptive_reviews WHERE user_id=?').get(userId),
         prediction: task.prediction,
         execution: executionEvidence(
           task.attemptId ? store.attempt(userId, task.attemptId)?.result : null,
@@ -2014,6 +2027,7 @@ export function flowRoutes(store: LearningDatabase) {
       // 等待模型期间学生可能继续操作；证据已更新时不能把过时讲解写回当前任务。
       if (!latest || latest.updatedAt !== before)
         throw new AccountError(409, "分析期间学习证据已更新，请重新分析。");
+      recordLearningIssue(store,userId,lesson,task,decision);
       if (
         task.retest &&
         !task.retestResult?.correct &&

@@ -68,6 +68,7 @@ export type Comparison = {
   reason?: string;
 };
 export type TeachingDecision = {
+  learningIssue?:{conceptId:string;evidenceKey:string;reason:string};
   policyVersion?:string;
   diagnostics?:DiagnosticObservation[];
   toolTrace?:{label:string;automatic:boolean;ok:boolean}[];

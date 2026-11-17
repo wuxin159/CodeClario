@@ -1,0 +1,23 @@
+/* 补学是当前学习目标的支线，保持蓝白体系，不用警告红或能力分数给学生贴标签。 */
+.remediation-suggestion { border:1px solid #cfdced; border-radius:10px; padding:16px; margin:0 0 16px; background:#f7faff; color:#30435a; }
+.remediation-eyebrow { display:flex; align-items:center; gap:6px; color:#245bb3; font-size:12px; }
+.remediation-suggestion h3 { font-size:16px; line-height:1.5; margin:8px 0; }
+.remediation-suggestion p { margin:8px 0; font-size:13px; line-height:1.8; }
+.remediation-suggestion details { margin:8px 0 12px; font-size:12px; }
+.remediation-suggestion summary { cursor:pointer; color:#45617f; }
+.remediation-suggestion > strong { font-size:14px; }
+.remediation-suggestion > small { display:block; margin-top:10px; color:#5e6d7f; font-size:12px; }
+.remediation-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+.app-shell .remediation-actions > button { display:inline-flex; align-items:center; justify-content:center; gap:6px; background:#245dd8; border:1px solid #245dd8; color:#fff; padding:8px 11px; font:inherit; font-size:12px; border-radius:7px; min-height:36px; }
+.app-shell .remediation-actions > button:last-child { background:#fff; border-color:#cbd6e4; color:#3e5878; }
+.app-shell .remediation-actions > button:disabled { opacity:.65; cursor:default; }
+.remediation-banner { display:flex; align-items:center; justify-content:space-between; gap:12px; flex:none; border:1px solid #d4deeb; border-radius:10px; padding:12px 16px; margin:0 0 16px; background:#f5f8fd; }
+.remediation-banner > div:first-child { display:grid; gap:3px; min-width:0; }
+.remediation-banner span { color:#245bb3; font-size:12px; }
+.remediation-banner strong { color:#263c58; font-size:14px; }
+.remediation-banner small { color:#596b80; font-size:12px; }
+.remediation-banner .remediation-actions { margin:0; flex:none; }
+.main-shell > .remediation-banner { margin:16px 24px 0; }
+.remediation-banner p[role="alert"],.remediation-suggestion p[role="alert"] { color:#a43731; }
+@media(min-width:1001px) and (max-height:740px) { .remediation-banner { padding:4px 12px; margin-bottom:8px; }.remediation-banner > div:first-child > :is(span,strong) { display:none; } }
+@media(max-width:760px) { .remediation-banner { flex-wrap:wrap; padding:12px; }.remediation-actions > button { min-height:40px; }.main-shell > .remediation-banner { margin:12px 16px 0; } }
